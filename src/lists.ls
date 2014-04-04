@@ -10,6 +10,10 @@ limit = (serial, parallel, projection, n, f, xs, callback) !-->
 # Parallel map
 # parallel-map :: (a -> CB b) -> [a] -> CB [b]
 parallel-map = (f, xs, callback) !-->
+	if empty xs
+		callback null, []
+		return
+
 	xs = xs `zip` [0 to xs.length - 1]
 	results = []
 	call = (err) !->
@@ -28,6 +32,10 @@ parallel-map = (f, xs, callback) !-->
 # Serial Asynchronous Map
 # serial-map :: (a -> CB b) -> [a] -> CB [b]
 serial-map = (f, xs, callback) !-->
+	if empty xs
+		callback null, []
+		return
+
 	next = (f, xs, results) ->
 		(err, r) <- f(xs[results.length])
 		if !!err

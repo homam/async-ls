@@ -1,6 +1,20 @@
+{fold, flip} = require \prelude-ls
 
 # returnA :: x -> CB x
 returnA = (x) -> (callback) -> callback null, x
+
+# fmapA :: (x -> y) -> CB x -> CB y
+fmapA = (f, g) ->
+	(callback) ->
+		(err, gx) <- g!
+		if !!err
+			callback err, null
+		else
+			callback null, (f gx)
+
+
+# ffmapA :: CB x -> (x -> y) -> CB y
+ffmapA = flip fmapA
 
 
 # bindA :: CB x -> (x -> CB y) -> CB y
@@ -26,6 +40,14 @@ kcompA = (f, g) ->
 
 # returnE :: x -> E x
 returnE = (x) -> [null, x]
+
+
+# fmapE :: (x -> y) -> E x -> E y
+fmapE = (f, [err, x]) ->
+	if !!err
+		[err, null]
+	else
+		[null, f x]
 
 
 # bindE :: E x -> (x -> E y) -> E y
@@ -67,9 +89,37 @@ transformEA = ([errf, fx], g) ->
 			g fx, callback
 
 
+# returnL :: x -> [x]
+returnL = (x) -> [x]
+
+# bindA :: [x] -> (x -> [y]) -> [y]
+bindL = (xs, g) ->
+	fold ((acc, a) -> acc ++ g a), [], xs
+
+
+# returnW :: Monoid s => s -> x -> [x, s]
+returnW = (mempty, x) --> [x, mempty]
+
+# bindW :: Monoid s => s -> [x, s] -> (x -> [y, s])
+bindW = (mappend, [x, xs], f) -->
+	[y, ys] = f x
+	[y, xs `mappend` ys]
+
+# tellW :: Monoid s => s -> [x, s] -> s -> [x, s]
+tellW = (mappend, [x, xs], s) -->
+	[x, xs `mappend` s]
+
+# returnWl :: x -> [x, []]
+returnWl = returnW []
+
+# bindWl :: [x, [s]] -> (x -> [y, [s]]) -> [y, [s]]
+bindWl = bindW (++)
+
+
 exports = exports or this
 
 exports.returnA = returnA
+exports.ffmapA = ffmapA
 exports.bindA = bindA
 exports.kcompA = kcompA
 
@@ -79,3 +129,13 @@ exports.kcompE = kcompE
 
 exports.transformAE = transformAE
 exports.transformEA = transformEA
+
+exports.returnL = returnL
+exports.bindL = bindL
+
+exports.returnW = returnW
+exports.bindW = bindW
+exports.tellW = tellW
+
+exports.returnWl = returnWl
+exports.bindWl = bindWl
