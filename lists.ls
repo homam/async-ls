@@ -1,4 +1,4 @@
-{zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, filter, id} = require \prelude-ls
+{zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, filter, id, empty} = require \prelude-ls
 {returnA, bindA, ffmapA} = require \./compositions
 
 
@@ -53,6 +53,22 @@ filterP = (f, xs, callback) !-->
 	(returnA xs) `bindA` (mapP g) `ffmapA` ((filter ([s,_]) -> s) >> (map ([_,x]) -> x)) 
 	<| callback
 	
+# serial-filter :: (x -> CB Bool) -> [x] -> CB [x]
+serial-filter = (f, arr, callback) !-->
+	next = (f, [x,...xs]:list, callback, res) ->
+		if empty list
+			callback null, res
+		else
+			(err, fx) <- f x
+			if !!err
+				callback err, null
+			else
+				next f, xs, callback, (if fx then res ++ [x] else res)
+
+	next f, arr, callback, []
+
+# parallel-limited-filter :: Int -> (x -> CB Bool) -> [x] -> CB x
+parallel-limited-filter = limit mapS, filterP, concat
 
 # anyP :: (x -> CB Bool) -> [x] -> Bool
 anyP = (f, xs, callback) !-->
@@ -114,7 +130,11 @@ exports = exports or this
 exports.mapS = mapS
 exports.mapP = mapP
 exports.mapP-limited = mapP-limited
+
 exports.filterP = filterP
+exports.serial-filter = serial-filter
+exports.parallel-limited-filter = parallel-limited-filter
+
 exports.anyP = anyP
 exports.parallel-limited-any = parallel-limited-any
 exports.parallel-all = parallel-all
