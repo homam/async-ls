@@ -80,6 +80,10 @@ parallel-limited-filter = limit serial-map, parallel-filter, concat
 
 # parallel-any :: (x -> CB Bool) -> [x] -> Bool
 parallel-any = (f, xs, callback) !-->
+	if empty xs
+		callback null, false
+		return
+
 	how-many-got = 0
 	callback-called = false
 	call = (err, res) ->
@@ -95,6 +99,10 @@ parallel-any = (f, xs, callback) !-->
 
 # serial-any :: (x -> CB Bool) -> [x] -> Bool
 serial-any = (f, xs, callback) !-->
+	if empty xs
+		callback null, false
+		return
+
 	next = (xs, callback, i) ->
 		(err, r) <- f xs[i]
 		if !!err
