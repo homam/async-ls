@@ -1,4 +1,4 @@
-{fold, flip} = require \prelude-ls
+{fold, flip, empty} = require \prelude-ls
 
 # returnA :: x -> CB x
 returnA = (x) -> (callback) -> callback null, x
@@ -65,6 +65,12 @@ kcompE = (f, g) ->
 		else
 			g fx
 
+# foldE :: (a -> b -> E a) -> a -> [b] -> E a
+foldE = (f, a, [x,...xs]:list) ->
+	| empty list => returnE a
+	| otherwise => (f a, x) `bindE` ((fax) -> foldE f, fax, xs)
+
+
 
 # transformAE :: CB x -> (x -> E y) -> CB y
 transformAE = (f, g) ->
@@ -126,6 +132,7 @@ exports.kcompA = kcompA
 exports.returnE = returnE
 exports.bindE = bindE
 exports.kcompE = kcompE
+exports.foldE = foldE
 
 exports.transformAE = transformAE
 exports.transformEA = transformEA
