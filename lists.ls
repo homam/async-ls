@@ -1,5 +1,11 @@
-{zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, filter} = require \prelude-ls
+{zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, filter, id} = require \prelude-ls
 {returnA, bindA, ffmapA} = require \./compositions
+
+
+limit = (serial, parallel, projection, n, f, xs, callback) !-->
+	parts = partition-in-n-parts n, xs
+	(returnA parts) `bindA` (serial (parallel f)) `ffmapA` projection <| callback
+
 
 # Parallel map
 # mapP :: (a -> CB b) -> [a] -> CB [b]
@@ -36,9 +42,7 @@ mapS = (f, xs, callback) !-->
 
 
 # mapP-limited :: Int -> (x -> CB y) -> [x] -> CB [y]
-mapP-limited = (n, f, xs, callback) !-->
-	parts = partition-in-n-parts n, xs
-	(returnA parts) `bindA` (mapS (mapP f)) `ffmapA` concat <| callback
+mapP-limited = limit mapS, mapP, concat
 
 
 # filterP :: (x -> CB Bool) -> [x] -> CB [x]
@@ -82,15 +86,23 @@ anyS = (f, xs, callback) !-->
 	next xs, callback, 0
 
 
-parallel-limited-any = (n, f, xs, callback) !-->
-	parts = partition-in-n-parts n, xs
-	(returnA parts) `bindA` (anyS (anyP f)) <| callback
+# parallel-limited-any :: Int -> (x -> CB Bool) -> [x] -> CB Bool
+parallel-limited-any = limit anyS, anyP, id
 
 
-parallel-all = (f, xs, callback) !->
+parallel-all = (f, xs, callback) !-->
 	g = (x, cb) ->
 		(returnA x) `bindA` f `ffmapA` (not) <| cb
 	(returnA xs) `bindA` (anyP g) `ffmapA` (not) <| callback
+
+serial-all = (f, xs, callback) !-->
+	g = (x, cb) ->
+		(returnA x) `bindA` f `ffmapA` (not) <| cb
+	(returnA xs) `bindA` (anyS g) `ffmapA` (not) <| callback
+
+
+# parallel-limited-all :: Int -> (x -> CB Bool) -> [x] -> CB Bool
+parallel-limited-all = limit serial-all, parallel-all, id
 
 
 # partition-in-n-parts :: Int -> [x] -> [[x]]
@@ -106,3 +118,5 @@ exports.filterP = filterP
 exports.anyP = anyP
 exports.parallel-limited-any = parallel-limited-any
 exports.parallel-all = parallel-all
+exports.serial-all = serial-all
+exports.parallel-limited-all = parallel-limited-all
