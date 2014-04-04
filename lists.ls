@@ -106,15 +106,19 @@ serial-any = (f, xs, callback) !-->
 parallel-limited-any = limit serial-any, parallel-any, id
 
 
-parallel-all = (f, xs, callback) !-->
+# make-all-by-any :: ((x -> CB Bool) -> [x] -> Bool) -> (x -> CB Bool) -> [x] -> CB Bool
+make-all-by-any = (which-any, f, xs, callback) !-->
 	g = (x, cb) ->
 		(returnA x) `bindA` f `ffmapA` (not) <| cb
-	(returnA xs) `bindA` (parallel-any g) `ffmapA` (not) <| callback
+	(returnA xs) `bindA` (which-any g) `ffmapA` (not) <| callback
 
-serial-all = (f, xs, callback) !-->
-	g = (x, cb) ->
-		(returnA x) `bindA` f `ffmapA` (not) <| cb
-	(returnA xs) `bindA` (serial-any g) `ffmapA` (not) <| callback
+
+# parallel-all :: (x -> CB Bool) -> [x] -> CB Bool
+parallel-all = make-all-by-any parallel-any
+
+
+# serial-all :: (x -> CB Bool) -> [x] -> CB Bool
+serial-all = make-all-by-any serial-any
 
 
 # parallel-limited-all :: Int -> (x -> CB Bool) -> [x] -> CB Bool
