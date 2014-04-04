@@ -8,8 +8,8 @@ limit = (serial, parallel, projection, n, f, xs, callback) !-->
 
 
 # Parallel map
-# mapP :: (a -> CB b) -> [a] -> CB [b]
-mapP = (f, xs, callback) !-->
+# parallel-map :: (a -> CB b) -> [a] -> CB [b]
+parallel-map = (f, xs, callback) !-->
 	xs = xs `zip` [0 to xs.length - 1]
 	results = []
 	call = (err) !->
@@ -26,8 +26,8 @@ mapP = (f, xs, callback) !-->
 
 
 # Serial Asynchronous Map
-# mapS :: (a -> CB b) -> [a] -> CB [b]
-mapS = (f, xs, callback) !-->
+# serial-map :: (a -> CB b) -> [a] -> CB [b]
+serial-map = (f, xs, callback) !-->
 	next = (f, xs, results) ->
 		(err, r) <- f(xs[results.length])
 		if !!err
@@ -41,16 +41,16 @@ mapS = (f, xs, callback) !-->
 	next f, xs, []
 
 
-# mapP-limited :: Int -> (x -> CB y) -> [x] -> CB [y]
-mapP-limited = limit mapS, mapP, concat
+# parallel-map-limited :: Int -> (x -> CB y) -> [x] -> CB [y]
+parallel-map-limited = limit serial-map, parallel-map, concat
 
 
-# filterP :: (x -> CB Bool) -> [x] -> CB [x]
-filterP = (f, xs, callback) !-->
+# parallel-filter :: (x -> CB Bool) -> [x] -> CB [x]
+parallel-filter = (f, xs, callback) !-->
 	g = (x, cb) -> 
 		(returnA x) `bindA` f `ffmapA` ((fx) -> [fx, x]) <| cb
 
-	(returnA xs) `bindA` (mapP g) `ffmapA` ((filter ([s,_]) -> s) >> (map ([_,x]) -> x)) 
+	(returnA xs) `bindA` (parallel-map g) `ffmapA` ((filter ([s,_]) -> s) >> (map ([_,x]) -> x)) 
 	<| callback
 	
 # serial-filter :: (x -> CB Bool) -> [x] -> CB [x]
@@ -68,10 +68,10 @@ serial-filter = (f, arr, callback) !-->
 	next f, arr, callback, []
 
 # parallel-limited-filter :: Int -> (x -> CB Bool) -> [x] -> CB x
-parallel-limited-filter = limit mapS, filterP, concat
+parallel-limited-filter = limit serial-map, parallel-filter, concat
 
-# anyP :: (x -> CB Bool) -> [x] -> Bool
-anyP = (f, xs, callback) !-->
+# parallel-any :: (x -> CB Bool) -> [x] -> Bool
+parallel-any = (f, xs, callback) !-->
 	how-many-got = 0
 	callback-called = false
 	call = (err, res) ->
@@ -85,8 +85,8 @@ anyP = (f, xs, callback) !-->
 			call err, res
 	xs |> each ((x) -> f x, got)
 
-# anyS :: (x -> CB Bool) -> [x] -> Bool
-anyS = (f, xs, callback) !-->
+# serial-any :: (x -> CB Bool) -> [x] -> Bool
+serial-any = (f, xs, callback) !-->
 	next = (xs, callback, i) ->
 		(err, r) <- f xs[i]
 		if !!err
@@ -103,18 +103,18 @@ anyS = (f, xs, callback) !-->
 
 
 # parallel-limited-any :: Int -> (x -> CB Bool) -> [x] -> CB Bool
-parallel-limited-any = limit anyS, anyP, id
+parallel-limited-any = limit serial-any, parallel-any, id
 
 
 parallel-all = (f, xs, callback) !-->
 	g = (x, cb) ->
 		(returnA x) `bindA` f `ffmapA` (not) <| cb
-	(returnA xs) `bindA` (anyP g) `ffmapA` (not) <| callback
+	(returnA xs) `bindA` (parallel-any g) `ffmapA` (not) <| callback
 
 serial-all = (f, xs, callback) !-->
 	g = (x, cb) ->
 		(returnA x) `bindA` f `ffmapA` (not) <| cb
-	(returnA xs) `bindA` (anyS g) `ffmapA` (not) <| callback
+	(returnA xs) `bindA` (serial-any g) `ffmapA` (not) <| callback
 
 
 # parallel-limited-all :: Int -> (x -> CB Bool) -> [x] -> CB Bool
@@ -127,16 +127,18 @@ partition-in-n-parts = (n, arr) -->
 
 
 exports = exports or this
-exports.mapS = mapS
-exports.mapP = mapP
-exports.mapP-limited = mapP-limited
+exports.serial-map = serial-map
+exports.parallel-map = parallel-map
+exports.parallel-map-limited = parallel-map-limited
 
-exports.filterP = filterP
+exports.parallel-filter = parallel-filter
 exports.serial-filter = serial-filter
 exports.parallel-limited-filter = parallel-limited-filter
 
-exports.anyP = anyP
+exports.parallel-any = parallel-any
+exports.serial-any = serial-any
 exports.parallel-limited-any = parallel-limited-any
+
 exports.parallel-all = parallel-all
 exports.serial-all = serial-all
 exports.parallel-limited-all = parallel-limited-all
