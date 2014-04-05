@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "prelude-ls": "~1.1.0",
-    "LiveScript": "~1.2.0"
+    "LiveScript": "~1.2.0",
+    "browserify": "*"
   },
   "devDependencies": {
     "mocha": "~1.18.2"
