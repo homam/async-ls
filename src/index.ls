@@ -3,6 +3,7 @@ lists = require \./lists
 
 async = {
 	compositions.returnA
+	compositions.fmapA
 	compositions.ffmapA
 	compositions.bindA
 	compositions.fbindA

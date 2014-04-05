@@ -4,7 +4,7 @@
 returnA = (x) -> (callback) -> callback null, x
 
 # fmapA :: (x -> y) -> CB x -> CB y
-fmapA = (f, g) ->
+fmapA = (f, g) -->
 	(callback) ->
 		(err, gx) <- g!
 		if !!err
@@ -18,7 +18,7 @@ ffmapA = flip fmapA
 
 
 # bindA :: CB x -> (x -> CB y) -> CB y
-bindA = (f, g) ->
+bindA = (f, g) -->
 	(callback) ->
 		(err, fx) <- f!
 		if !!err 
@@ -125,6 +125,7 @@ bindL = (xs, g) ->
 # returnW :: Monoid s => s -> x -> [x, s]
 returnW = (mempty, x) --> [x, mempty]
 
+
 # bindW :: Monoid s => s -> [x, s] -> (x -> [y, s])
 bindW = (mappend, [x, xs], f) -->
 	[y, ys] = f x
@@ -144,9 +145,10 @@ bindWl = bindW (++)
 exports = exports or this
 
 exports.returnA = returnA
+exports.fmapA = fmapA
 exports.ffmapA = ffmapA
 exports.bindA = bindA
-empty.fbindA = fbindA
+exports.fbindA = fbindA
 exports.kcompA = kcompA
 
 exports.returnE = returnE
