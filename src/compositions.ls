@@ -27,6 +27,9 @@ bindA = (f, g) ->
 			g fx, callback
 
 
+# fbindA :: (x -> CB y) -> CB x -> CB y
+fbindA = flip bindA
+
 # Left to right Kleisli composition
 # kcompA :: (x -> CB y) -> (y -> CB z) -> (x -> CB z)
 kcompA = (f, g) ->
@@ -50,9 +53,17 @@ fmapE = (f, [err, x]) ->
 		[null, f x]
 
 
+# ffmapE :: E x -> (x -> y) -> E y
+ffmapE = flip fmapE
+
+
 # bindE :: E x -> (x -> E y) -> E y
 bindE = ([errf, fx], g) ->
 	if !!errf then [errf, null] else g fx
+
+
+# bindE :: (x -> E y) -> E x -> E y
+fbindE = flip bindE
 
 
 # Left to right Kleisli composition
@@ -86,6 +97,10 @@ transformAE = (f, g) ->
 				callback null, gfx
 
 
+# ftransformAE :: (x -> E y) -> CB x -> CB y
+ftransformAE = flip transformAE
+
+
 # transformEA :: E x -> (x -> CB y) -> CB y
 transformEA = ([errf, fx], g) ->
 	(callback) ->
@@ -93,6 +108,10 @@ transformEA = ([errf, fx], g) ->
 			callback errf, null
 		else
 			g fx, callback
+
+
+# ftransformEA :: (x -> CB y) -> E x -> CB y
+ftransformEA = flip transformEA
 
 
 # returnL :: x -> [x]
@@ -127,15 +146,21 @@ exports = exports or this
 exports.returnA = returnA
 exports.ffmapA = ffmapA
 exports.bindA = bindA
+empty.fbindA = fbindA
 exports.kcompA = kcompA
 
 exports.returnE = returnE
+exports.fmapE = fmapE
+exports.ffmapE = ffmapE
 exports.bindE = bindE
+exports.fbindE = fbindE
 exports.kcompE = kcompE
 exports.foldE = foldE
 
 exports.transformAE = transformAE
+exports.ftransformAE = ftransformAE
 exports.transformEA = transformEA
+exports.ftransformEA = ftransformEA
 
 exports.returnL = returnL
 exports.bindL = bindL
