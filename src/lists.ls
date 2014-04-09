@@ -2,7 +2,7 @@
 
 # Imports
 {zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, filter, id, empty} = require \prelude-ls
-{returnA, bindA, fbindA, ffmapA, fmapA, sequenceA} = require \./compositions
+{returnA, bindA, fbindA, ffmapA, fmapA, sequenceA, foldA} = require \./compositions
 
 # Private utility function used to create the parallel-limited version of the functions.
 
@@ -190,6 +190,10 @@ parallel-limited-all = limit serial-all, parallel-all, id
 
 # ## Control Flow
 
+# 	series-sequence :: [CB x] -> CB [x]
+series-sequence = (..., callback) -> sequenceA ... <| callback
+
+
 # ### parallel-sequence
 # Run its sole input (a tasks array of functions) in parallel, 
 # without waiting until the previous function has completed. 
@@ -198,7 +202,7 @@ parallel-limited-all = limit serial-all, parallel-all, id
 # Once the tasks have completed, the results are passed to the final callback as an array.
 
 # 	parallel-sequence :: [CB x] -> CB [x]
-parallel-sequence = (..., callback) -> sequenceA ... <| callback
+parallel-sequence = (fs, callback) -> parallel-map ((f, cb) -> f cb), fs <| callback
 
 
 # ### parallel-limited-sequence
@@ -207,8 +211,16 @@ parallel-sequence = (..., callback) -> sequenceA ... <| callback
 parallel-limited-sequence = limit serial-map, sequenceA, concat
 
 
+# ### Waterfall
 
+# 	waterfall :: x -> (x -> CB x) -> CB x
 
+waterfall = (x, fs, callback) -->
+	g = (a, y, cb) --> y a, cb
+	foldA g, x, fs <| callback
+
+# 	series-fold :: (a -> b -> m a) -> a -> [b] -> m a
+series-fold = (..., callback) -> foldA ... <| callback
 
 
 
@@ -230,5 +242,9 @@ exports.parallel-all = parallel-all
 exports.serial-all = serial-all
 exports.parallel-limited-all = parallel-limited-all
 
+exports.series-sequence = series-sequence
+
 exports.parallel-sequence = parallel-sequence
 exports.parallel-limited-sequence = parallel-limited-sequence
+
+exports.waterfall = waterfall

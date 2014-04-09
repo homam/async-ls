@@ -1,11 +1,12 @@
 {odd} = require \prelude-ls
-{returnL, bindL, ffmapA, returnA, bindA}  = require \./../build/compositions
+{returnL, bindL, ffmapA, returnA, bindA, foldA}  = require \./../build/compositions
 {
 	parallel-map-limited, serial-map, parallel-map, 
 	parallel-filter, serial-filter, parallel-limited-filter,
 	parallel-any, serial-any, parallel-limited-any, 
 	parallel-all, serial-all, parallel-limited-all,
-	parallel-sequence
+	parallel-sequence, series-sequence,
+	waterfall
 } = require \./../build/lists  
 
 assert = require 'assert'
@@ -171,6 +172,26 @@ describe 'All', ->
 
 describe 'Control Flow', ->
 
+	tc = (t, c, callback) --> 
+		setTimeout ->
+			callback null, c
+		, t
+
+	describe 'series-sequence', ->
+
+		_it 'on [] should be []', (done) ->
+			(err, res) <- series-sequence []
+			assert.deep-equal [], res
+			done!
+
+		_it 'on [CB 20, CB 60] should be [20, 60]', (done) ->
+			t0 = new Date
+			(err, res) <- series-sequence [(tc 200, 20), (tc 200, 60)]
+			t1 = new Date
+			assert.deep-equal [20, 60], res
+			assert(t1 - t0 > 380)
+			done!
+
 	describe 'parallel-sequence', ->
 
 		_it 'on [] should be []', (done) ->
@@ -179,9 +200,19 @@ describe 'Control Flow', ->
 			done!
 
 		_it 'on [CB 20, CB 60] should be [20, 60]', (done) ->
-			(err, res) <- parallel-sequence [(doubleA 10), (doubleA 30)]
+			t0 = new Date
+			(err, res) <- parallel-sequence [(tc 200, 20), (tc 200, 60)]
+			t1 = new Date
 			assert.deep-equal [20, 60], res
+			assert(t1 - t0 < 220)
 			done!
+
+	describe 'series-fold', ->
+		g = (a, x, callback) -->
+			(err, xa) <- x a
+			x a, callback
+		(err, res) <- waterfall 30, [doubleA, doubleA]
+		assert.equal(120, res);
 
 return
 
