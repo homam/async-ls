@@ -1,14 +1,27 @@
+# # Lists
+
+# Imports
 {zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, filter, id, empty} = require \prelude-ls
-{returnA, bindA, ffmapA} = require \./compositions
+{returnA, bindA, fbindA, ffmapA, fmapA} = require \./compositions
 
 
+# Private utility function used to create the parallel-limited version of the functions.
+
+# 	limit :: ((a -> CB b) -> [a] -> CB c) -> 
+#			 	((a -> CB b) -> [a] -> CB c) -> 
+#			 	(c -> d) ->
+#			 	Int -> 
+#			 	(a -> CB b) -> [a] -> CB d
 limit = (serial, parallel, projection, n, f, xs, callback) !-->
 	parts = partition-in-n-parts n, xs
 	(returnA parts) `bindA` (serial (parallel f)) `ffmapA` projection <| callback
 
 
-# Parallel map
-# parallel-map :: (a -> CB b) -> [a] -> CB [b]
+# ## Map
+
+# ### parallel-map
+
+# 	parallel-map :: (a -> CB b) -> [a] -> CB [b]
 parallel-map = (f, xs, callback) !-->
 	if empty xs
 		callback null, []
@@ -29,8 +42,10 @@ parallel-map = (f, xs, callback) !-->
 	xs |> each ([x,i]) -> f x, (got i)
 
 
+# ### serial-map
 # Serial Asynchronous Map
-# serial-map :: (a -> CB b) -> [a] -> CB [b]
+
+# 	serial-map :: (a -> CB b) -> [a] -> CB [b]
 serial-map = (f, xs, callback) !-->
 	if empty xs
 		callback null, []
@@ -49,17 +64,24 @@ serial-map = (f, xs, callback) !-->
 	next f, xs, []
 
 
-# parallel-map-limited :: Int -> (x -> CB y) -> [x] -> CB [y]
+# ### parallel-map-limited
+
+# 	parallel-map-limited :: Int -> (x -> CB y) -> [x] -> CB [y]
 parallel-map-limited = limit serial-map, parallel-map, concat
 
+
+# -----
+# ## Filter
 
 # parallel-filter :: (x -> CB Bool) -> [x] -> CB [x]
 parallel-filter = (f, xs, callback) !-->
 	g = (x, cb) -> 
 		(returnA x) `bindA` f `ffmapA` ((fx) -> [fx, x]) <| cb
 
-	(returnA xs) `bindA` (parallel-map g) `ffmapA` ((filter ([s,_]) -> s) >> (map ([_,x]) -> x)) 
-	<| callback
+	(returnA xs) 
+		|> fbindA (parallel-map g) 
+		|> fmapA ((filter ([s,_]) -> s) >> (map ([_,x]) -> x)) <| callback
+
 	
 # serial-filter :: (x -> CB Bool) -> [x] -> CB [x]
 serial-filter = (f, arr, callback) !-->
@@ -78,7 +100,7 @@ serial-filter = (f, arr, callback) !-->
 # parallel-limited-filter :: Int -> (x -> CB Bool) -> [x] -> CB x
 parallel-limited-filter = limit serial-map, parallel-filter, concat
 
-# parallel-any :: (x -> CB Bool) -> [x] -> Bool
+# parallel-any :: (x -> CB Bool) -> [x] -> CB Bool
 parallel-any = (f, xs, callback) !-->
 	if empty xs
 		callback null, false
@@ -97,7 +119,7 @@ parallel-any = (f, xs, callback) !-->
 			call err, res
 	xs |> each ((x) -> f x, got)
 
-# serial-any :: (x -> CB Bool) -> [x] -> Bool
+# serial-any :: (x -> CB Bool) -> [x] -> CB Bool
 serial-any = (f, xs, callback) !-->
 	if empty xs
 		callback null, false
