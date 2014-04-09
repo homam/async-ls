@@ -1,4 +1,4 @@
-{fold, flip, empty} = require \prelude-ls
+{fold, foldr, flip, empty} = require \prelude-ls
 
 # returnA :: x -> CB x
 returnA = (x) -> (callback) -> callback null, x
@@ -17,7 +17,7 @@ fmapA = (f, g) -->
 ffmapA = flip fmapA
 
 
-# bindA :: CB x -> (x -> CB y) -> CB y
+# s :: CB x -> (x -> CB y) -> CB y
 bindA = (f, g) -->
 	(callback) ->
 		(err, fx) <- f!
@@ -39,6 +39,14 @@ kcompA = (f, g) ->
 			callback err, null
 		else
 			g fx, callback
+
+# sequenceE :: [CB x] -> CB [x]
+sequenceA = (list, callback) -->
+	k = ([mx, ...mxs]:input, mrs) ->
+		| empty input => callback null, mrs
+		| otherwise => bindA mx, ((r) -> k mxs, mrs ++ [r]) <| callback
+
+	k list, []
 
 
 # returnE :: x -> E x
@@ -81,6 +89,15 @@ foldE = (f, a, [x,...xs]:list) ->
 	| empty list => returnE a
 	| otherwise => (f a, x) `bindE` ((fax) -> foldE f, fax, xs)
 
+
+# sequenceE :: [E x] -> E [x]
+sequenceE = (mxs) ->
+	k = (m, mp) -->
+		[err, x] = m
+		[err, xs] = mp
+		returnE ([x] ++ xs)
+
+	foldr k, (returnE []), mxs
 
 
 # transformAE :: CB x -> (x -> E y) -> CB y
@@ -150,6 +167,7 @@ exports.ffmapA = ffmapA
 exports.bindA = bindA
 exports.fbindA = fbindA
 exports.kcompA = kcompA
+exports.sequenceA = sequenceA
 
 exports.returnE = returnE
 exports.fmapE = fmapE
@@ -158,6 +176,7 @@ exports.bindE = bindE
 exports.fbindE = fbindE
 exports.kcompE = kcompE
 exports.foldE = foldE
+exports.sequenceE = sequenceE
 
 exports.transformAE = transformAE
 exports.ftransformAE = ftransformAE
