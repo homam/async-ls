@@ -41,10 +41,10 @@ kcompA = (f, g) ->
 			g fx, callback
 
 # sequenceE :: [CB x] -> CB [x]
-sequenceA = (list, callback) -->
+sequenceA = (list) -->
 	k = ([mx, ...mxs]:input, mrs) ->
-		| empty input => callback null, mrs
-		| otherwise => bindA mx, ((r) -> k mxs, mrs ++ [r]) <| callback
+		| empty input => returnA mrs
+		| otherwise => bindA mx, ((r) -> k mxs, mrs ++ [r])
 
 	k list, []
 
