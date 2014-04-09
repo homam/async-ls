@@ -6,4 +6,4 @@ browser/
 build
 docs/
 
-.js
+*.js
