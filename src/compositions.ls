@@ -1,9 +1,18 @@
 {fold, foldr, flip, empty} = require \prelude-ls
 
-# returnA :: x -> CB x
+# ## Asynchronous Compositions
+
+# ### returnA
+# Inject a value into an asynchronous action.
+
+# 	returnA :: x -> CB x
 returnA = (x) -> (callback) -> callback null, x
 
-# fmapA :: (x -> y) -> CB x -> CB y
+
+# ### fmapA
+# Map a normal function over an asynchronous action.
+
+# 	fmapA :: (x -> y) -> CB x -> CB y
 fmapA = (f, g) -->
 	(callback) ->
 		(err, gx) <- g!
@@ -13,11 +22,18 @@ fmapA = (f, g) -->
 			callback null, (f gx)
 
 
-# ffmapA :: CB x -> (x -> y) -> CB y
+# ### ffmapA
+# fmapA with its arguments flipped
+
+# 	ffmapA :: CB x -> (x -> y) -> CB y
 ffmapA = flip fmapA
 
 
-# s :: CB x -> (x -> CB y) -> CB y
+# ### bindA
+# Sequentially compose two asynchronous actions, passing any value produced
+# by the first as an argument to the second.
+
+# 	bindA :: CB x -> (x -> CB y) -> CB y
 bindA = (f, g) -->
 	(callback) ->
 		(err, fx) <- f!
@@ -27,11 +43,17 @@ bindA = (f, g) -->
 			g fx, callback
 
 
-# fbindA :: (x -> CB y) -> CB x -> CB y
+# ### fbindA
+# bindA with its arguments flipped
+
+# 	fbindA :: (x -> CB y) -> CB x -> CB y
 fbindA = flip bindA
 
-# Left to right Kleisli composition
-# kcompA :: (x -> CB y) -> (y -> CB z) -> (x -> CB z)
+
+# ### kcompA
+# Left to right Kleisli composition of two asynchronous actions.
+
+# 	kcompA :: (x -> CB y) -> (y -> CB z) -> (x -> CB z)
 kcompA = (f, g) ->
 	(x, callback) ->
 		(err, fx) <- f x
@@ -40,16 +62,42 @@ kcompA = (f, g) ->
 		else
 			g fx, callback
 
-# sequenceE :: [CB x] -> CB [x]
-sequenceA = (list) -->
-	k = ([mx, ...mxs]:input, mrs) ->
-		| empty input => returnA mrs
-		| otherwise => bindA mx, ((r) -> k mxs, mrs ++ [r])
 
-	k list, []
+# ### foldA
+# The `foldA` function is analogous to `foldl`, except that its result is
+# encapsulated in an asynchronous callback.
 
+# 	foldA :: (a -> b -> m a) -> a -> [b] -> m a
+foldA = (f, a, [x,...xs]:list) -->
+	(callback) ->
+		| empty list => callback null, a
+		| otherwise => 
+			(err, fax) <- f a, x
+			if !!err
+				return callback err, null
+			foldA f, fax, xs <| callback
 
-# returnE :: x -> E x
+# ### sequenceA
+# Evaluate each action in the sequence from left to right, 
+# and collect the results.
+
+# sequenceA :: [CB x] -> CB [x]
+sequenceA = (list) ->
+	(callback) ->
+		k = ([mx, ...mxs]:input, mrs) ->
+			| empty input => callback null, mrs
+			| otherwise => bindA mx, ((r) -> k mxs, mrs ++ [r]) <| callback
+
+		k list, []
+
+# -----
+
+# ## Either Compositions
+
+# ### returnE
+# Inject a value into an either action.
+
+# 	returnE :: x -> E x
 returnE = (x) -> [null, x]
 
 
@@ -167,6 +215,7 @@ exports.ffmapA = ffmapA
 exports.bindA = bindA
 exports.fbindA = fbindA
 exports.kcompA = kcompA
+exports.foldA = foldA
 exports.sequenceA = sequenceA
 
 exports.returnE = returnE

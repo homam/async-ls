@@ -4,5 +4,6 @@ lib/
 junk/
 browser/
 build
+docs/
 
 .js
