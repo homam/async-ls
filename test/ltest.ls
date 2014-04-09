@@ -4,7 +4,8 @@
 	parallel-map-limited, serial-map, parallel-map, 
 	parallel-filter, serial-filter, parallel-limited-filter,
 	parallel-any, serial-any, parallel-limited-any, 
-	parallel-all, serial-all, parallel-limited-all
+	parallel-all, serial-all, parallel-limited-all,
+	parallel-sequence
 } = require \./../build/lists  
 
 assert = require 'assert'
@@ -166,6 +167,20 @@ describe 'All', ->
 			(err, res) <- parallel-limited-all 3, more-than3A, [1 to 10]
 			assert.deep-equal false, res
 			assert.equal 3, count
+			done!
+
+describe 'Control Flow', ->
+
+	describe 'parallel-sequence', ->
+
+		_it 'on [] should be []', (done) ->
+			(err, res) <- parallel-sequence []
+			assert.deep-equal [], res
+			done!
+
+		_it 'on [CB 20, CB 60] should be [20, 60]', (done) ->
+			(err, res) <- parallel-sequence [(doubleA 10), (doubleA 30)]
+			assert.deep-equal [20, 60], res
 			done!
 
 return

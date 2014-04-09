@@ -2,8 +2,7 @@
 
 # Imports
 {zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, filter, id, empty} = require \prelude-ls
-{returnA, bindA, fbindA, ffmapA, fmapA} = require \./compositions
-
+{returnA, bindA, fbindA, ffmapA, fmapA, sequenceA} = require \./compositions
 
 # Private utility function used to create the parallel-limited version of the functions.
 
@@ -15,6 +14,16 @@
 limit = (serial, parallel, projection, n, f, xs, callback) !-->
 	parts = partition-in-n-parts n, xs
 	(returnA parts) `bindA` (serial (parallel f)) `ffmapA` projection <| callback
+
+
+# Private utility function for partitioning the input `arr` into sets of `n` members.
+
+# 	partition-in-n-parts :: Int -> [x] -> [[x]]
+partition-in-n-parts = (n, arr) -->
+	(arr `zip` [0 to arr.length - 1]) 
+		|> (group-by ([a, i]) -> i `div` n) 
+		|> obj-to-pairs 
+		|> map (([_, ar]) -> (map (([a, _]) -> a), ar))
 
 
 # ## Map
@@ -65,6 +74,8 @@ serial-map = (f, xs, callback) !-->
 
 
 # ### parallel-map-limited
+# Similar to `parallel-map`, only no more than 
+# `limit` iterators will be simultaneously running at any time.
 
 # 	parallel-map-limited :: Int -> (x -> CB y) -> [x] -> CB [y]
 parallel-map-limited = limit serial-map, parallel-map, concat
@@ -73,7 +84,9 @@ parallel-map-limited = limit serial-map, parallel-map, concat
 # -----
 # ## Filter
 
-# parallel-filter :: (x -> CB Bool) -> [x] -> CB [x]
+# ### parallel-filter
+
+# 	parallel-filter :: (x -> CB Bool) -> [x] -> CB [x]
 parallel-filter = (f, xs, callback) !-->
 	g = (x, cb) -> 
 		(returnA x) `bindA` f `ffmapA` ((fx) -> [fx, x]) <| cb
@@ -82,8 +95,10 @@ parallel-filter = (f, xs, callback) !-->
 		|> fbindA (parallel-map g) 
 		|> fmapA ((filter ([s,_]) -> s) >> (map ([_,x]) -> x)) <| callback
 
-	
-# serial-filter :: (x -> CB Bool) -> [x] -> CB [x]
+
+### serial-filter
+
+# 	serial-filter :: (x -> CB Bool) -> [x] -> CB [x]
 serial-filter = (f, arr, callback) !-->
 	next = (f, [x,...xs]:list, callback, res) ->
 		if empty list
@@ -97,10 +112,18 @@ serial-filter = (f, arr, callback) !-->
 
 	next f, arr, callback, []
 
-# parallel-limited-filter :: Int -> (x -> CB Bool) -> [x] -> CB x
+
+# ### parallel-limited-filter
+
+# 	parallel-limited-filter :: Int -> (x -> CB Bool) -> [x] -> CB x
 parallel-limited-filter = limit serial-map, parallel-filter, concat
 
-# parallel-any :: (x -> CB Bool) -> [x] -> CB Bool
+# -----
+# ## Any
+
+# ### parallel-any
+
+# 	parallel-any :: (x -> CB Bool) -> [x] -> CB Bool
 parallel-any = (f, xs, callback) !-->
 	if empty xs
 		callback null, false
@@ -140,7 +163,9 @@ serial-any = (f, xs, callback) !-->
 	next xs, callback, 0
 
 
-# parallel-limited-any :: Int -> (x -> CB Bool) -> [x] -> CB Bool
+# ### parallel-limited-any
+
+# 	parallel-limited-any :: Int -> (x -> CB Bool) -> [x] -> CB Bool
 parallel-limited-any = limit serial-any, parallel-any, id
 
 
@@ -163,9 +188,29 @@ serial-all = make-all-by-any serial-any
 parallel-limited-all = limit serial-all, parallel-all, id
 
 
-# partition-in-n-parts :: Int -> [x] -> [[x]]
-partition-in-n-parts = (n, arr) -->
-	(arr `zip` [0 to arr.length - 1]) |> (group-by ([a, i]) -> i `div` n) |> obj-to-pairs |> map (([_, ar]) -> (map (([a, _]) -> a), ar))
+# ## Control Flow
+
+# ### parallel-sequence
+# Run its sole input (a tasks array of functions) in parallel, 
+# without waiting until the previous function has completed. 
+# If any of the functions pass an error to its callback, 
+# the main callback is immediately called with the value of the error. 
+# Once the tasks have completed, the results are passed to the final callback as an array.
+
+# 	parallel-sequence :: [CB x] -> CB [x]
+parallel-sequence = (..., callback) -> sequenceA ... <| callback
+
+
+# ### parallel-limited-sequence
+
+# 	parallel-limited-sequence :: Int -> [CB x] -> CB [x]
+parallel-limited-sequence = limit serial-map, sequenceA, concat
+
+
+
+
+
+
 
 
 exports = exports or this
@@ -184,3 +229,6 @@ exports.parallel-limited-any = parallel-limited-any
 exports.parallel-all = parallel-all
 exports.serial-all = serial-all
 exports.parallel-limited-all = parallel-limited-all
+
+exports.parallel-sequence = parallel-sequence
+exports.parallel-limited-sequence = parallel-limited-sequence
