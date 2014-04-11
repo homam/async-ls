@@ -5,6 +5,8 @@
 	parallel-filter, serial-filter, parallel-limited-filter,
 	parallel-any, serial-any, parallel-limited-any, 
 	parallel-all, serial-all, parallel-limited-all,
+	parallel-find, serial-find,
+	parallel-sort-by,
 	parallel-sequence, series-sequence,
 	waterfall
 } = require \./../build/lists  
@@ -73,9 +75,20 @@ describe 'Any', ->
 				count := count + 1
 				setTimeout (-> callback null, x>3), 10
 			(err, res) <- parallel-any more-than3A, []
-			assert.deep-equal false, res
+			assert.equal false, res
 			assert.equal 0, count
 			done!
+
+		_it '(> 3) on [1 to 10] should be true in 10 calls', (done) ->
+			count = 0
+			more-than3A = (x, callback) --> 
+				count := count + 1
+				setTimeout (-> callback null, x>3), 10
+			(err, res) <- parallel-any more-than3A, [1 to 10]
+			assert.equal true, res
+			assert.equal 10, count
+			done!
+
 
 
 	describe 'serial-any', ->
@@ -85,8 +98,20 @@ describe 'Any', ->
 				count := count + 1
 				setTimeout (-> callback null, x>3), 10
 			(err, res) <- serial-any more-than3A, []
-			assert.deep-equal false, res
+			assert.equal false, res
 			assert.equal 0, count
+			done!
+
+
+	describe 'serial-any', ->
+		_it '(> 3) on [1 to 10] should be true in 3 steps', (done) ->
+			count = 0
+			more-than3A = (x, callback) --> 
+				count := count + 1
+				setTimeout (-> callback null, x>3), 10
+			(err, res) <- serial-any more-than3A, [1 to 10]
+			assert.equal true, res
+			assert.equal 4, count
 			done!
 
 	describe 'parallel-limited-any', ->
@@ -112,6 +137,53 @@ describe 'Any', ->
 			done!
 
 
+describe 'Find', ->
+
+	describe 'serial-find', ->
+
+		_it 'on [] should be null with 0 calls', (done) ->
+			count = 0
+			is-five = (x, callback) --> 
+				count := count + 1
+				setTimeout (-> callback null, x == 5), 10
+			(err, res) <- serial-find is-five, []
+			assert(res == null)
+			assert.equal 0, count
+			done!
+
+		_it 'on (==5), [1 to 10] should be 5 with 5 calls', (done) ->
+			count = 0
+			is-five = (x, callback) --> 
+				count := count + 1
+				setTimeout (-> callback null, x==5), 10
+			(err, res) <- serial-find is-five, [1 to 10]
+			assert.equal 5, res
+			assert.equal 5, count
+			done!
+
+	describe 'parallel-find', ->
+
+		_it 'on [] should be null with 0 calls', (done) ->
+			count = 0
+			is-five = (x, callback) --> 
+				count := count + 1
+				setTimeout (-> callback null, x == 5), 10
+			(err, res) <- parallel-find is-five, []
+			assert res is null
+			assert.equal 0, count
+			done!
+
+		_it 'on (==5), [1 to 10] should be 5 with 10 calls', (done) ->
+			count = 0
+			is-five = (x, callback) --> 
+				count := count + 1
+				setTimeout (-> callback null, x==5), 10
+			(err, res) <- parallel-find is-five, [1 to 10]
+			assert.equal 5, res
+			assert.equal 10, count
+			done!
+
+
 describe 'All', ->
 
 	describe 'parallel-all', ->
@@ -125,7 +197,6 @@ describe 'All', ->
 			assert.deep-equal true, res
 			assert.equal 0, count
 			done!
-
 
 	describe 'serial-all', ->
 		_it 'on [] should be true', (done) ->
@@ -170,6 +241,20 @@ describe 'All', ->
 			assert.equal 3, count
 			done!
 
+describe 'Sort', ->
+
+	describe 'parallel-sort-by', ->
+
+		_it 'on [4, 6, 2, 3, 10, 2, 4, 5] should be [2, 2, 3, 4, 4, 5, 6, 10]', (done) ->
+			f = (x, callback) ->
+				setTimeout ->
+					callback null, x
+				, 10
+
+			(err, res) <- parallel-sort-by f, [4, 6, 2, 3, 10, 2, 4, 5]
+			assert.deep-equal [2, 2, 3, 4, 4, 5, 6, 10], res
+			done!
+
 describe 'Control Flow', ->
 
 	tc = (t, c, callback) --> 
@@ -207,12 +292,13 @@ describe 'Control Flow', ->
 			assert(t1 - t0 < 220)
 			done!
 
-	describe 'series-fold', ->
-		g = (a, x, callback) -->
-			(err, xa) <- x a
-			x a, callback
-		(err, res) <- waterfall 30, [doubleA, doubleA]
-		assert.equal(120, res);
+	# describe 'series-fold', ->
+	# 	_it 'on [] should be []', (done) ->
+	# 		g = (a, x, callback) -->
+	# 			(err, xa) <- x a
+	# 			x a, callback
+	# 		(err, res) <- waterfall 30, [doubleA, doubleA]
+	# 		assert.equal(120, res);
 
 return
 

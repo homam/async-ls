@@ -33,10 +33,11 @@ partition-in-n-parts = (n, arr) -->
 # 	parallel-map :: (a -> CB b) -> [a] -> CB [b]
 parallel-map = (f, xs, callback) !-->
 	if empty xs
-		callback null, []
-		return
+		return callback null, []
+		
 
-	xs = xs `zip` [0 to xs.length - 1]
+	total = xs.length
+	xs = xs `zip` [0 to total - 1]
 	results = []
 	call = (err) !->
 		callback err, (results |> (sort-by ([_,i]) -> i) >> (map ([r,_]) -> r))
@@ -45,9 +46,10 @@ parallel-map = (f, xs, callback) !-->
 		if !!err
 			call err
 		else
-			results := results ++ [[r,i]]
-			if results.length == xs.length
+			results.push [r,i]
+			if results.length == total
 				call null
+
 	xs |> each ([x,i]) -> f x, (got i)
 
 
@@ -119,15 +121,37 @@ serial-filter = (f, arr, callback) !-->
 parallel-limited-filter = limit serial-map, parallel-filter, concat
 
 # -----
-# ## Any
+# ## Any, All, Find
 
-# ### parallel-any
+# Private utility function used to create `serial-find` and `serial-any` 
 
-# 	parallel-any :: (x -> CB Bool) -> [x] -> CB Bool
-parallel-any = (f, xs, callback) !-->
+# 	serial-find-any :: (x -> CB Bool) -> [x] -> CB [Bool, x]
+serial-find-any = (f, xs, callback) !-->
 	if empty xs
-		callback null, false
-		return
+		return callback null, [false, null]
+
+	next = (xs, callback, i) ->
+		x = xs[i]
+		(err, r) <- f x
+		if !!err
+			callback err, [null, null]
+		else
+			if r
+				callback null, [true, x]
+			else
+				if i == xs.length - 1
+					callback null, [false, null]
+				else
+					next xs, callback, i+1
+	next xs, callback, 0
+
+
+# Private utility function used to create `parallel-find` and `parallel-any` 
+
+# 	parallel-any :: (x -> CB Bool) -> [x] -> CB [Bool, x]
+parallel-find-any = (f, xs, callback) !-->
+	if empty xs
+		return callback null, [false, null]
 
 	how-many-got = 0
 	callback-called = false
@@ -136,31 +160,32 @@ parallel-any = (f, xs, callback) !-->
 			callback-called := true 
 			callback err, res
 	total = xs.length
-	got = (err, res) -> 
+	got = (err, [res, x]) -> 
 		how-many-got := how-many-got + 1
-		if !!err or res or how-many-got == total
-			call err, res
-	xs |> each ((x) -> f x, got)
+		if !!err
+			return call err, [false, null]
+		if res 
+			return call null, [res, x]
+		if how-many-got == total
+			return call null, [false, null]
+	xs |> each ((x) -> 
+		(err, res) <- f x
+		got err, [res, x]
+	)
+
+
+# ### parallel-any
+
+# 	parallel-any :: (x -> CB Bool) -> [x] -> CB Bool
+parallel-any = (f, xs, callback) !-->
+	(parallel-find-any f, xs) `ffmapA` (([b, _]) -> b) <| callback
+
+
+# ### serial-any
 
 # serial-any :: (x -> CB Bool) -> [x] -> CB Bool
 serial-any = (f, xs, callback) !-->
-	if empty xs
-		callback null, false
-		return
-
-	next = (xs, callback, i) ->
-		(err, r) <- f xs[i]
-		if !!err
-			callback err, null
-		else
-			if r
-				callback null, true
-			else
-				if i == xs.length - 1
-					callback null, false
-				else
-					next xs, callback, i+1
-	next xs, callback, 0
+	(serial-find-any f, xs) `ffmapA` (([b, _]) -> b) <| callback
 
 
 # ### parallel-limited-any
@@ -169,29 +194,54 @@ serial-any = (f, xs, callback) !-->
 parallel-limited-any = limit serial-any, parallel-any, id
 
 
-# make-all-by-any :: ((x -> CB Bool) -> [x] -> Bool) -> (x -> CB Bool) -> [x] -> CB Bool
+# Private utility function: `all f = not any (not . f)`
+
+#	 make-all-by-any :: ((x -> CB Bool) -> [x] -> Bool) -> (x -> CB Bool) -> [x] -> CB Bool
 make-all-by-any = (which-any, f, xs, callback) !-->
 	g = (x, cb) ->
 		(returnA x) `bindA` f `ffmapA` (not) <| cb
 	(returnA xs) `bindA` (which-any g) `ffmapA` (not) <| callback
 
 
-# parallel-all :: (x -> CB Bool) -> [x] -> CB Bool
+# ### parallel-all
+
+# 	parallel-all :: (x -> CB Bool) -> [x] -> CB Bool
 parallel-all = make-all-by-any parallel-any
 
 
-# serial-all :: (x -> CB Bool) -> [x] -> CB Bool
+# ### serial-all
+
+# 	serial-all :: (x -> CB Bool) -> [x] -> CB Bool
 serial-all = make-all-by-any serial-any
 
 
-# parallel-limited-all :: Int -> (x -> CB Bool) -> [x] -> CB Bool
+# ### parallel-limited-all
+
+# 	parallel-limited-all :: Int -> (x -> CB Bool) -> [x] -> CB Bool
 parallel-limited-all = limit serial-all, parallel-all, id
 
+
+# ### parallel-find
+
+#	paralel-find :: (x -> CB Bool) -> [x] -> CB x
+parallel-find = (f, xs, callback) !-->
+	(parallel-find-any f, xs) `ffmapA` (([_, o]) -> o) <| callback
+
+
+# ### serial-find
+
+#	serial-find :: (x -> CB Bool) -> [x] -> CB x
+serial-find = (f, xs, callback) !-->
+	(serial-find-any f, xs) `ffmapA` (([_, o]) -> o) <| callback
+
+
+#
+#
 
 # ## Control Flow
 
 # 	series-sequence :: [CB x] -> CB [x]
-series-sequence = (..., callback) -> sequenceA ... <| callback
+series-sequence = (..., callback) !-> sequenceA ... <| callback
 
 
 # ### parallel-sequence
@@ -202,7 +252,7 @@ series-sequence = (..., callback) -> sequenceA ... <| callback
 # Once the tasks have completed, the results are passed to the final callback as an array.
 
 # 	parallel-sequence :: [CB x] -> CB [x]
-parallel-sequence = (fs, callback) -> parallel-map ((f, cb) -> f cb), fs <| callback
+parallel-sequence = (fs, callback) !-> parallel-map ((f, cb) -> f cb), fs <| callback
 
 
 # ### parallel-limited-sequence
@@ -210,6 +260,19 @@ parallel-sequence = (fs, callback) -> parallel-map ((f, cb) -> f cb), fs <| call
 # 	parallel-limited-sequence :: Int -> [CB x] -> CB [x]
 parallel-limited-sequence = limit serial-map, sequenceA, concat
 
+
+#TODO: similar to parallel-filter
+parallel-sort-by = (f, xs, callback)  !-->
+	g = (x, cb) -> 
+		(returnA x) `bindA` f `ffmapA` ((fx) -> [fx, x]) <| cb
+
+	(returnA xs) 
+		|> fbindA (parallel-map g) 
+		|> fmapA ((sort-by ([s,_]) -> s) >> (map ([_,x]) -> x)) <| callback
+
+
+
+	
 
 # ### Waterfall
 
@@ -241,6 +304,11 @@ exports.parallel-limited-any = parallel-limited-any
 exports.parallel-all = parallel-all
 exports.serial-all = serial-all
 exports.parallel-limited-all = parallel-limited-all
+
+exports.parallel-find = parallel-find
+exports.serial-find = serial-find
+
+exports.parallel-sort-by = parallel-sort-by
 
 exports.series-sequence = series-sequence
 
