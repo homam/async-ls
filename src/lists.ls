@@ -1,8 +1,11 @@
 # # Lists
 
 # Imports
-{zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, filter, id, empty} = require \prelude-ls
-{returnA, bindA, fbindA, ffmapA, fmapA, sequenceA, foldA} = require \./compositions
+{zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, filter, id, empty, find} = require \prelude-ls
+{
+	returnA, bindA, fbindA, ffmapA, fmapA, sequenceA, foldA,
+	filterL
+} = require \./compositions
 
 # Private utility function used to create the parallel-limited version of the functions.
 
@@ -235,6 +238,39 @@ serial-find = (f, xs, callback) !-->
 	(serial-find-any f, xs) `ffmapA` (([_, o]) -> o) <| callback
 
 
+#TODO: similar to parallel-filter
+parallel-sort-by = (f, xs, callback)  !-->
+	g = (x, cb) -> 
+		(returnA x) `bindA` f `ffmapA` ((fx) -> [fx, x]) <| cb
+
+	(returnA xs) 
+		|> fbindA (parallel-map g) 
+		|> fmapA ((sort-by ([s,_]) -> s) >> (map ([_,x]) -> x)) <| callback
+
+
+# ### parallel-sort-with
+
+# 	parallel-sort-with :: (a -> a -> CB i) -> [a] -> CB [a]
+parallel-sort-with = (f, xs, callback) !-->
+	compareA = ([[a,ia],[b, ib]], cb) !-->
+		(err, c) <- f a, b
+		if !!err
+			return callback err, null
+		cb null, [ia, ib, c]
+
+	ilist = xs `zip` [0 to xs.length - 1]
+
+	filterL (-> [true, false]), ilist # power set of ilist: [[[o, i]]]
+		|> filter (-> it.length == 2) 
+		|> returnA
+		|> fbindA parallel-map compareA
+		|> fmapA (cs) -> 
+			compare = ([a,ia],[b,ib]) ->
+				[_,_,c] = find (([x,y,_]) -> x == ia and y == ib), cs
+				c
+			ilist.sort compare .map ([i,_]) -> i
+		<| callback
+
 #
 #
 
@@ -261,18 +297,6 @@ parallel-sequence = (fs, callback) !-> parallel-map ((f, cb) -> f cb), fs <| cal
 parallel-limited-sequence = limit serial-map, sequenceA, concat
 
 
-#TODO: similar to parallel-filter
-parallel-sort-by = (f, xs, callback)  !-->
-	g = (x, cb) -> 
-		(returnA x) `bindA` f `ffmapA` ((fx) -> [fx, x]) <| cb
-
-	(returnA xs) 
-		|> fbindA (parallel-map g) 
-		|> fmapA ((sort-by ([s,_]) -> s) >> (map ([_,x]) -> x)) <| callback
-
-
-
-	
 
 # ### Waterfall
 
@@ -309,6 +333,7 @@ exports.parallel-find = parallel-find
 exports.serial-find = serial-find
 
 exports.parallel-sort-by = parallel-sort-by
+exports.parallel-sort-with = parallel-sort-with
 
 exports.series-sequence = series-sequence
 

@@ -82,7 +82,7 @@ foldA = (f, a, [x,...xs]:list) -->
 # Evaluate each action in the sequence from left to right, 
 # and collect the results.
 
-# sequenceA :: [CB x] -> CB [x]
+# 	sequenceA :: [CB x] -> CB [x]
 sequenceA = (list) ->
 	(callback) ->
 		k = ([mx, ...mxs]:input, mrs) ->
@@ -90,6 +90,23 @@ sequenceA = (list) ->
 			| otherwise => bindA mx, ((r) -> k mxs, mrs ++ [r]) <| callback
 
 		k list, []
+
+
+# ### filterA
+
+# 	filterA :: [x -> CB Bool] -> [x] -> CB [x]
+filterA = (f, [x,...xs]:list, callback) -->
+	if empty list 
+		return callback null, []
+	else
+		(f x) 
+			|> fbindA (fx, cb) ->
+				(err, ys) <- filterA f, xs
+				match !!err
+				| true => cb err, null
+				| otherwise => cb null, if fx then [x] ++ ys else ys
+			<| callback
+
 
 # -----
 
@@ -190,7 +207,7 @@ bindL = (xs, g) ->
 fbindL = flip bindL
 
 # filterL :: (x -> [Bool]) -> [x] -> [[x]]
-filterL = (f, [x,...xs]:list) ->
+filterL = (f, [x,...xs]:list) -->
 	if empty list 
 		return returnL []
 	else 
@@ -200,26 +217,27 @@ filterL = (f, [x,...xs]:list) ->
 				|> fbindL (ys) ->
 					returnL if fx then [x] ++ ys else ys
 
-		# (f x) `bindL` ((fx) -> 
-		# 	(filterL f, xs) `bindL` ((ys) ->
-		# 		returnL if fx then [x] ++ ys else ys
-		# 		)
-		# 	)
 
+# Equivalent to:
 
-filterA = (f, [x,...xs]:list, callback) -->
+#		filterL = (f, [x,...xs]:list) ->
+#			if empty list 
+#				return returnL []	
+#			(f x) `bindL` ((fx) -> 
+#				(filterL f, xs) `bindL` ((ys) ->
+#					returnL if fx then [x] ++ ys else ys
+#					)
+#				)
+
+filterL = (f, [x,...xs]:list) ->
 	if empty list 
-		return callback null, []
-	else
-		(f x) 
-			|> fbindA (fx, cb) ->
-				(filterA f, xs, (err, ys) ->
-					if !!err
-						cb err, null
-					else
-						cb null, if fx then [x] ++ ys else ys
-				)
-			<| callback
+		return returnL []	
+	(f x) `bindL` ((fx) -> 
+		(filterL f, xs) `bindL` ((ys) ->
+			returnL if fx then [x] ++ ys else ys
+			)
+		)
+
 
 # returnW :: Monoid s => s -> x -> [x, s]
 returnW = (mempty, x) --> [x, mempty]
@@ -268,6 +286,7 @@ exports.ftransformEA = ftransformEA
 
 exports.returnL = returnL
 exports.bindL = bindL
+exports.fbindL = fbindL
 exports.filterL = filterL
 
 exports.returnW = returnW

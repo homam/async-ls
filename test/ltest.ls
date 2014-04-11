@@ -6,7 +6,7 @@
 	parallel-any, serial-any, parallel-limited-any, 
 	parallel-all, serial-all, parallel-limited-all,
 	parallel-find, serial-find,
-	parallel-sort-by,
+	parallel-sort-by, parallel-sort-with,
 	parallel-sequence, series-sequence,
 	waterfall
 } = require \./../build/lists  
@@ -253,6 +253,22 @@ describe 'Sort', ->
 
 			(err, res) <- parallel-sort-by f, [4, 6, 2, 3, 10, 2, 4, 5]
 			assert.deep-equal [2, 2, 3, 4, 4, 5, 6, 10], res
+			done!
+
+	describe 'parallel-sort-with', ->
+
+		_it 'on [2, 1, 3, 2, 4, 8, 5, 12, -2] should be [ -2, 1, 2, 2, 3, 4, 5, 8, 12 ]', (done) ->
+			f = (a, b, callback) ->
+				c =
+					| a>b => 1
+					| a<b => -1
+					| otherwise => 0
+				setTimeout ->
+					callback null, c
+				, 10
+
+			(err, res) <- parallel-sort-with f, [2, 1, 3, 2, 4, 8, 5, 12, -2]
+			assert.deep-equal [ -2, 1, 2, 2, 3, 4, 5, 8, 12 ], res
 			done!
 
 describe 'Control Flow', ->
