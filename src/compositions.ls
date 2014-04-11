@@ -187,16 +187,39 @@ returnL = (x) -> [x]
 bindL = (xs, g) ->
 	fold ((acc, a) -> acc ++ g a), [], xs
 
+fbindL = flip bindL
+
 # filterL :: (x -> [Bool]) -> [x] -> [[x]]
 filterL = (f, [x,...xs]:list) ->
 	if empty list 
 		return returnL []
 	else 
-		(f x) `bindL` ((fx) -> 
-			(filterL f, xs) `bindL` ((ys) ->
-				returnL if fx then [x] ++ ys else ys
+		(f x) 
+			|> fbindL (fx) -> 
+				(filterL f, xs) 
+				|> fbindL (ys) ->
+					returnL if fx then [x] ++ ys else ys
+
+		# (f x) `bindL` ((fx) -> 
+		# 	(filterL f, xs) `bindL` ((ys) ->
+		# 		returnL if fx then [x] ++ ys else ys
+		# 		)
+		# 	)
+
+
+filterA = (f, [x,...xs]:list, callback) -->
+	if empty list 
+		return callback null, []
+	else
+		(f x) 
+			|> fbindA (fx, cb) ->
+				(filterA f, xs, (err, ys) ->
+					if !!err
+						cb err, null
+					else
+						cb null, if fx then [x] ++ ys else ys
 				)
-			)
+			<| callback
 
 # returnW :: Monoid s => s -> x -> [x, s]
 returnW = (mempty, x) --> [x, mempty]
@@ -253,3 +276,5 @@ exports.tellW = tellW
 
 exports.returnWl = returnWl
 exports.bindWl = bindWl
+
+exports.filterA = filterA
