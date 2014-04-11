@@ -35,9 +35,21 @@ describe 'Map', ->
 			assert.deep-equal [], res
 			done!
 
-		_it 'on [1,2,3] should be [2,4,6]', (done) ->
+		_it '(*2) on [1,2,3] should be [2,4,6]', (done) ->
 			(err, res) <- parallel-map doubleA, [1,2,3]
 			assert.deep-equal [2,4,6], res
+			done!
+
+		_it '(err on > 2) on [1,2,3,4] should be an error', (done) ->
+			double-err-three = (x, callback) !->
+				setTimeout ->
+					if x > 2
+						return callback 'Error on 3', null
+					callback null, x*2
+				, 10
+
+			(err, res) <- parallel-map double-err-three, [1,2,3,4]
+			assert.equal 'Error on 3', err
 			done!
 
 
@@ -50,6 +62,21 @@ describe 'Map', ->
 		_it 'on [1,2,3] should be [2,4,6]', (done) ->
 			(err, res) <- serial-map doubleA, [1,2,3]
 			assert.deep-equal [2,4,6], res
+			done!
+
+		_it '(err on 3) on [1,2,3,4] should be an error', (done) ->
+			count = 0
+			double-err-three = (x, callback) !->
+				setTimeout ->
+					count := count + 1
+					if x == 3
+						return callback 'Error on 3', null
+					callback null, x*2
+				, 10
+
+			(err, res) <- serial-map double-err-three, [1,2,3,4]
+			assert.equal 'Error on 3', err
+			assert.equal 3, count
 			done!
 
 describe 'Filter', ->
@@ -269,6 +296,22 @@ describe 'Sort', ->
 
 			(err, res) <- parallel-sort-with f, [2, 1, 3, 2, 4, 8, 5, 12, -2]
 			assert.deep-equal [ -2, 1, 2, 2, 3, 4, 5, 8, 12 ], res
+			done!
+
+		_it 'on [2, 1, 3, 2, 4, 8, 5, 12, -2] should be [ -2, 1, 2, 2, 3, 4, 5, 8, 12 ]', (done) ->
+			f = (a, b, callback) ->
+				c =
+					| a>b => 1
+					| a<b => -1
+					| otherwise => 0
+				setTimeout ->
+					if a == 3 
+						return callback 'A is 3', null
+					callback null, c
+				, 10
+
+			(err, res) <- parallel-sort-with f, [2, 1, 3, 2, 4, 8, 5, 12, -2]
+			assert err is not null
 			done!
 
 describe 'Control Flow', ->

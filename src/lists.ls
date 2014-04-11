@@ -29,12 +29,21 @@ partition-in-n-parts = (n, arr) -->
 		|> map (([_, ar]) -> (map (([a, _]) -> a), ar))
 
 
+once = (callback) ->
+	called = false
+	(...) -> 
+		if not called
+			called := true
+			callback ...
+
 # ## Map
 
 # ### parallel-map
 
 # 	parallel-map :: (a -> CB b) -> [a] -> CB [b]
 parallel-map = (f, xs, callback) !-->
+	callback = once callback
+	
 	if empty xs
 		return callback null, []
 		
@@ -153,15 +162,15 @@ serial-find-any = (f, xs, callback) !-->
 
 # 	parallel-any :: (x -> CB Bool) -> [x] -> CB [Bool, x]
 parallel-find-any = (f, xs, callback) !-->
+
+	callback = once callback
+
 	if empty xs
 		return callback null, [false, null]
 
 	how-many-got = 0
-	callback-called = false
 	call = (err, res) ->
-		if not callback-called
-			callback-called := true 
-			callback err, res
+		callback err, res
 	total = xs.length
 	got = (err, [res, x]) -> 
 		how-many-got := how-many-got + 1
@@ -255,7 +264,7 @@ parallel-sort-with = (f, xs, callback) !-->
 	compareA = ([[a,ia],[b, ib]], cb) !-->
 		(err, c) <- f a, b
 		if !!err
-			return callback err, null
+			return cb err, null
 		cb null, [ia, ib, c]
 
 	ilist = xs `zip` [0 to xs.length - 1]
