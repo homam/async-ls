@@ -1,4 +1,5 @@
 {fold, foldr, flip, empty} = require \prelude-ls
+{filter, map, id} = require \prelude-ls
 
 # ## Asynchronous Compositions
 
@@ -186,6 +187,16 @@ returnL = (x) -> [x]
 bindL = (xs, g) ->
 	fold ((acc, a) -> acc ++ g a), [], xs
 
+# filterL :: (x -> [Bool]) -> [x] -> [[x]]
+filterL = (f, [x,...xs]:list) ->
+	if empty list 
+		return returnL []
+	else 
+		(f x) `bindL` ((fx) -> 
+			(filterL f, xs) `bindL` ((ys) ->
+				returnL if fx then [x] ++ ys else ys
+				)
+			)
 
 # returnW :: Monoid s => s -> x -> [x, s]
 returnW = (mempty, x) --> [x, mempty]
@@ -234,6 +245,7 @@ exports.ftransformEA = ftransformEA
 
 exports.returnL = returnL
 exports.bindL = bindL
+exports.filterL = filterL
 
 exports.returnW = returnW
 exports.bindW = bindW
