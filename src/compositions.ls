@@ -96,16 +96,14 @@ sequenceA = (list) ->
 
 # 	filterA :: [x -> CB Bool] -> [x] -> CB [x]
 filterA = (f, [x,...xs]:list, callback) -->
-	if empty list 
-		return callback null, []
-	else
-		(f x) 
-			|> fbindA (fx, cb) ->
-				(err, ys) <- filterA f, xs
-				match !!err
-				| true => cb err, null
-				| otherwise => cb null, if fx then [x] ++ ys else ys
-			<| callback
+	return callback null, [] if empty list
+	(f x) 
+		|> fbindA (fx, cb) ->
+			(err, ys) <- filterA f, xs
+			match !!err
+			| true => cb err, null
+			| otherwise => cb null, if fx then [x] ++ ys else ys
+		<| callback
 
 
 # -----
@@ -208,14 +206,12 @@ fbindL = flip bindL
 
 # filterL :: (x -> [Bool]) -> [x] -> [[x]]
 filterL = (f, [x,...xs]:list) -->
-	if empty list 
-		return returnL []
-	else 
-		(f x) 
-			|> fbindL (fx) -> 
-				(filterL f, xs) 
-				|> fbindL (ys) ->
-					returnL if fx then [x] ++ ys else ys
+	return returnL [] if empty list 
+	(f x) 
+		|> fbindL (fx) -> 
+			(filterL f, xs) 
+			|> fbindL (ys) ->
+				returnL if fx then [x] ++ ys else ys
 
 
 # Equivalent to:
@@ -229,14 +225,6 @@ filterL = (f, [x,...xs]:list) -->
 #					)
 #				)
 
-filterL = (f, [x,...xs]:list) ->
-	if empty list 
-		return returnL []	
-	(f x) `bindL` ((fx) -> 
-		(filterL f, xs) `bindL` ((ys) ->
-			returnL if fx then [x] ++ ys else ys
-			)
-		)
 
 
 # returnW :: Monoid s => s -> x -> [x, s]

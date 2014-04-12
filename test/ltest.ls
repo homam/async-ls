@@ -351,13 +351,23 @@ describe 'Control Flow', ->
 			assert(t1 - t0 < 220)
 			done!
 
-	# describe 'series-fold', ->
-	# 	_it 'on [] should be []', (done) ->
-	# 		g = (a, x, callback) -->
-	# 			(err, xa) <- x a
-	# 			x a, callback
-	# 		(err, res) <- waterfall 30, [doubleA, doubleA]
-	# 		assert.equal(120, res);
+
+	describe 'waterfall', ->
+		_it 'on 30 [] should be 30', (done) ->
+			g = (a, x, callback) -->
+				(err, xa) <- x a
+				x a, callback
+			(err, res) <- waterfall 30, []
+			assert.equal(30, res);
+			done!
+
+		_it 'on 30 [(*2), (*2)] should be 120', (done) ->
+			g = (a, x, callback) -->
+				(err, xa) <- x a
+				x a, callback
+			(err, res) <- waterfall 30, [doubleA, doubleA]
+			assert.equal(120, res);
+			done!
 
 return
 

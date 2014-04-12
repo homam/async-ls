@@ -1,7 +1,10 @@
 # # Lists
 
 # Imports
-{zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, filter, id, empty, find} = require \prelude-ls
+{
+	zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, 
+	filter, id, empty, find
+} = require \prelude-ls
 {
 	returnA, bindA, fbindA, ffmapA, fmapA, sequenceA, foldA,
 	filterL
@@ -19,7 +22,8 @@ limit = (serial, parallel, projection, n, f, xs, callback) !-->
 	(returnA parts) `bindA` (serial (parallel f)) `ffmapA` projection <| callback
 
 
-# Private utility function for partitioning the input `arr` into sets of `n` members.
+# Private utility function: partition the input `arr` 
+# into smaller arrays of maximum `n` length.
 
 # 	partition-in-n-parts :: Int -> [x] -> [[x]]
 partition-in-n-parts = (n, arr) -->
@@ -29,12 +33,16 @@ partition-in-n-parts = (n, arr) -->
 		|> map (([_, ar]) -> (map (([a, _]) -> a), ar))
 
 
-once = (callback) ->
+# Private utility function: ensure that the input `f` will be called maximum one time.
+
+# 	once :: (a -> b) -> (a -> b)
+once = (f) ->
 	called = false
+	fx = null
 	(...) -> 
-		if not called
-			called := true
-			callback ...
+		return fx if called
+		called := true
+		fx := f ...
 
 # ## Map
 
@@ -42,12 +50,9 @@ once = (callback) ->
 
 # 	parallel-map :: (a -> CB b) -> [a] -> CB [b]
 parallel-map = (f, xs, callback) !-->
-	callback = once callback
-	
-	if empty xs
-		return callback null, []
-		
+	return callback null, [] if empty xs
 
+	callback = once callback
 	total = xs.length
 	xs = xs `zip` [0 to total - 1]
 	results = []
@@ -70,9 +75,7 @@ parallel-map = (f, xs, callback) !-->
 
 # 	serial-map :: (a -> CB b) -> [a] -> CB [b]
 serial-map = (f, xs, callback) !-->
-	if empty xs
-		callback null, []
-		return
+	return callback null, [] if empty xs
 
 	next = (f, xs, results) ->
 		(err, r) <- f(xs[results.length])
@@ -115,14 +118,12 @@ parallel-filter = (f, xs, callback) !-->
 # 	serial-filter :: (x -> CB Bool) -> [x] -> CB [x]
 serial-filter = (f, arr, callback) !-->
 	next = (f, [x,...xs]:list, callback, res) ->
-		if empty list
-			callback null, res
+		return callback null, res if empty list
+		(err, fx) <- f x
+		if !!err
+			callback err, null
 		else
-			(err, fx) <- f x
-			if !!err
-				callback err, null
-			else
-				next f, xs, callback, (if fx then res ++ [x] else res)
+			next f, xs, callback, (if fx then res ++ [x] else res)
 
 	next f, arr, callback, []
 
@@ -139,22 +140,19 @@ parallel-limited-filter = limit serial-map, parallel-filter, concat
 
 # 	serial-find-any :: (x -> CB Bool) -> [x] -> CB [Bool, x]
 serial-find-any = (f, xs, callback) !-->
-	if empty xs
-		return callback null, [false, null]
+	return callback null, [false, null] if empty xs
 
 	next = (xs, callback, i) ->
 		x = xs[i]
 		(err, r) <- f x
-		if !!err
-			callback err, [null, null]
+		callback err, [null, null] if !!err
+		if r
+			callback null, [true, x]
 		else
-			if r
-				callback null, [true, x]
+			if i == xs.length - 1
+				callback null, [false, null]
 			else
-				if i == xs.length - 1
-					callback null, [false, null]
-				else
-					next xs, callback, i+1
+				next xs, callback, i+1
 	next xs, callback, 0
 
 
@@ -162,24 +160,21 @@ serial-find-any = (f, xs, callback) !-->
 
 # 	parallel-any :: (x -> CB Bool) -> [x] -> CB [Bool, x]
 parallel-find-any = (f, xs, callback) !-->
+	return callback null, [false, null] if empty xs
 
 	callback = once callback
-
-	if empty xs
-		return callback null, [false, null]
-
 	how-many-got = 0
+
 	call = (err, res) ->
 		callback err, res
 	total = xs.length
+
 	got = (err, [res, x]) -> 
 		how-many-got := how-many-got + 1
-		if !!err
-			return call err, [false, null]
-		if res 
-			return call null, [res, x]
-		if how-many-got == total
-			return call null, [false, null]
+		return call err, [false, null] if !!err
+		return call null, [res, x] if res 
+		return call null, [false, null] if how-many-got == total
+
 	xs |> each ((x) -> 
 		(err, res) <- f x
 		got err, [res, x]
@@ -263,8 +258,7 @@ parallel-sort-by = (f, xs, callback)  !-->
 parallel-sort-with = (f, xs, callback) !-->
 	compareA = ([[a,ia],[b, ib]], cb) !-->
 		(err, c) <- f a, b
-		if !!err
-			return cb err, null
+		return cb err, null if !!err
 		cb null, [ia, ib, c]
 
 	ilist = xs `zip` [0 to xs.length - 1]
