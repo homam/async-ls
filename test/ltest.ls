@@ -7,7 +7,8 @@
 	parallel-all, serial-all, parallel-limited-all,
 	parallel-find, serial-find,
 	parallel-sort-by, parallel-sort-with,
-	parallel-sequence, series-sequence,
+	parallel-sequence, serial-sequence,
+	parallel-apply-each, serial-apply-each,
 	waterfall
 } = require \./../build/lists  
 
@@ -321,16 +322,16 @@ describe 'Control Flow', ->
 			callback null, c
 		, t
 
-	describe 'series-sequence', ->
+	describe 'serial-sequence', ->
 
 		_it 'on [] should be []', (done) ->
-			(err, res) <- series-sequence []
+			(err, res) <- serial-sequence []
 			assert.deep-equal [], res
 			done!
 
 		_it 'on [CB 20, CB 60] should be [20, 60]', (done) ->
 			t0 = new Date
-			(err, res) <- series-sequence [(tc 200, 20), (tc 200, 60)]
+			(err, res) <- serial-sequence [(tc 200, 20), (tc 200, 60)]
 			t1 = new Date
 			assert.deep-equal [20, 60], res
 			assert(t1 - t0 > 380)
@@ -349,6 +350,36 @@ describe 'Control Flow', ->
 			t1 = new Date
 			assert.deep-equal [20, 60], res
 			assert(t1 - t0 < 220)
+			done!
+
+	describe 'parallel-apply-each', ->
+
+		_it 'on [] should be []', (done) ->
+			(err, res) <- parallel-apply-each 5, []
+			assert.deep-equal [], res
+			done!
+
+		_it 'on 20, [doubleA, doubleA] should be [20, 20]', (done) ->
+			t0 = new Date
+			(err, res) <- parallel-apply-each 10, [doubleA, doubleA]
+			t1 = new Date
+			assert.deep-equal [20, 20], res
+			console.assert(t1 - t0 < 15)
+			done!
+
+	describe 'serial-apply-each', ->
+
+		_it 'on [] should be []', (done) ->
+			(err, res) <- serial-apply-each 5, []
+			assert.deep-equal [], res
+			done!
+
+		_it 'on 20, [doubleA, doubleA] should be [20, 20]', (done) ->
+			t0 = new Date
+			(err, res) <- serial-apply-each 10, [doubleA, doubleA]
+			t1 = new Date
+			assert.deep-equal [20, 20], res
+			console.assert(t1 - t0 > 15)
 			done!
 
 

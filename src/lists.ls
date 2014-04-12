@@ -10,7 +10,7 @@
 	filterL
 } = require \./compositions
 
-# Private utility function used to create the parallel-limited version of the functions.
+# Private utility function: used to create the parallel-limited version of the functions.
 
 # 	limit :: ((a -> CB b) -> [a] -> CB c) -> 
 #			 	((a -> CB b) -> [a] -> CB c) -> 
@@ -21,6 +21,16 @@ limit = (serial, parallel, projection, n, f, xs, callback) !-->
 	parts = partition-in-n-parts n, xs
 	(returnA parts) `bindA` (serial (parallel f)) `ffmapA` projection <| callback
 
+
+# Private utility function: first item in a tuple
+
+# 	fst :: [a, _] -> a
+fst = ([a, _]) -> a
+
+# Private utility function: second item in a tuple
+
+# 	snd :: [_, a] -> a
+snd = ([_, a]) -> a
 
 # Private utility function: partition the input `arr` 
 # into smaller arrays of maximum `n` length.
@@ -57,7 +67,7 @@ parallel-map = (f, xs, callback) !-->
 	xs = xs `zip` [0 to total - 1]
 	results = []
 	call = (err) !->
-		callback err, (results |> (sort-by ([_,i]) -> i) >> (map ([r,_]) -> r))
+		callback err, (results |> (sort-by snd) >> (map fst))
 
 	got = (i, err, r) !-->
 		if !!err
@@ -110,7 +120,7 @@ parallel-filter = (f, xs, callback) !-->
 
 	(returnA xs) 
 		|> fbindA (parallel-map g) 
-		|> fmapA ((filter ([s,_]) -> s) >> (map ([_,x]) -> x)) <| callback
+		|> fmapA ((filter fst) >> (map snd)) <| callback
 
 
 ### serial-filter
@@ -185,14 +195,14 @@ parallel-find-any = (f, xs, callback) !-->
 
 # 	parallel-any :: (x -> CB Bool) -> [x] -> CB Bool
 parallel-any = (f, xs, callback) !-->
-	(parallel-find-any f, xs) `ffmapA` (([b, _]) -> b) <| callback
+	(parallel-find-any f, xs) `ffmapA` fst <| callback
 
 
 # ### serial-any
 
 # serial-any :: (x -> CB Bool) -> [x] -> CB Bool
 serial-any = (f, xs, callback) !-->
-	(serial-find-any f, xs) `ffmapA` (([b, _]) -> b) <| callback
+	(serial-find-any f, xs) `ffmapA` fst <| callback
 
 
 # ### parallel-limited-any
@@ -232,14 +242,14 @@ parallel-limited-all = limit serial-all, parallel-all, id
 
 #	paralel-find :: (x -> CB Bool) -> [x] -> CB x
 parallel-find = (f, xs, callback) !-->
-	(parallel-find-any f, xs) `ffmapA` (([_, o]) -> o) <| callback
+	(parallel-find-any f, xs) `ffmapA` snd <| callback
 
 
 # ### serial-find
 
 #	serial-find :: (x -> CB Bool) -> [x] -> CB x
 serial-find = (f, xs, callback) !-->
-	(serial-find-any f, xs) `ffmapA` (([_, o]) -> o) <| callback
+	(serial-find-any f, xs) `ffmapA` snd <| callback
 
 
 #TODO: similar to parallel-filter
@@ -249,7 +259,7 @@ parallel-sort-by = (f, xs, callback)  !-->
 
 	(returnA xs) 
 		|> fbindA (parallel-map g) 
-		|> fmapA ((sort-by ([s,_]) -> s) >> (map ([_,x]) -> x)) <| callback
+		|> fmapA (sort-by fst) >> (map snd) <| callback
 
 
 # ### parallel-sort-with
@@ -264,7 +274,7 @@ parallel-sort-with = (f, xs, callback) !-->
 	ilist = xs `zip` [0 to xs.length - 1]
 
 	filterL (-> [true, false]), ilist # power set of ilist: [[[o, i]]]
-		|> filter (-> it.length == 2) 
+		|> filter (.length == 2) 
 		|> returnA
 		|> fbindA parallel-map compareA
 		|> fmapA (cs) -> 
@@ -279,8 +289,8 @@ parallel-sort-with = (f, xs, callback) !-->
 
 # ## Control Flow
 
-# 	series-sequence :: [CB x] -> CB [x]
-series-sequence = (..., callback) !-> sequenceA ... <| callback
+# 	serial-sequence :: [CB x] -> CB [x]
+serial-sequence = (..., callback) !-> sequenceA ... <| callback
 
 
 # ### parallel-sequence
@@ -299,6 +309,11 @@ parallel-sequence = (fs, callback) !-> parallel-map ((f, cb) -> f cb), fs <| cal
 # 	parallel-limited-sequence :: Int -> [CB x] -> CB [x]
 parallel-limited-sequence = limit serial-map, sequenceA, concat
 
+
+parallel-apply-each = (x, fs, callback) !-> parallel-sequence (map (<| x), fs), callback
+
+
+serial-apply-each = (x, fs, callback) !-> serial-sequence (map (<| x), fs), callback
 
 
 # ### Waterfall
@@ -338,9 +353,12 @@ exports.serial-find = serial-find
 exports.parallel-sort-by = parallel-sort-by
 exports.parallel-sort-with = parallel-sort-with
 
-exports.series-sequence = series-sequence
+exports.serial-sequence = serial-sequence
 
 exports.parallel-sequence = parallel-sequence
 exports.parallel-limited-sequence = parallel-limited-sequence
+
+exports.parallel-apply-each = parallel-apply-each
+exports.serial-apply-each = serial-apply-each
 
 exports.waterfall = waterfall
