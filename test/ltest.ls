@@ -8,7 +8,7 @@
 	parallel-find, serial-find,
 	parallel-sort-by, parallel-sort-with,
 	parallel-sequence, serial-sequence,
-	parallel-apply-each, serial-apply-each,
+	parallel-apply-each, serial-apply-each, parallel-limited-apply-each,
 	waterfall
 } = require \./../build/lists  
 
@@ -365,6 +365,21 @@ describe 'Control Flow', ->
 			t1 = new Date
 			assert.deep-equal [20, 20], res
 			console.assert(t1 - t0 < 15)
+			done!
+
+	describe 'parallel-limited-apply-each', ->
+
+		_it 'on [] should be []', (done) ->
+			(err, res) <- parallel-limited-apply-each 2, 5, []
+			assert.deep-equal [], res
+			done!
+
+		_it 'on 20, [doubleA, doubleA] should be [20, 20, 20, 20, 20, 20, 20]', (done) ->
+			t0 = new Date
+			(err, res) <- parallel-limited-apply-each 2, 10, [doubleA, doubleA, doubleA, doubleA, doubleA, doubleA, doubleA]
+			t1 = new Date
+			assert.deep-equal [20, 20, 20, 20, 20, 20, 20], res
+			console.assert(40 <t1 - t0 < 50)
 			done!
 
 	describe 'serial-apply-each', ->

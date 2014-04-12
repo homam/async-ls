@@ -310,10 +310,22 @@ parallel-sequence = (fs, callback) !-> parallel-map ((f, cb) -> f cb), fs <| cal
 parallel-limited-sequence = limit serial-map, sequenceA, concat
 
 
-parallel-apply-each = (x, fs, callback) !-> parallel-sequence (map (<| x), fs), callback
+# ### parallel-apply-each
+
+# 	parallel-apply-each :: x -> [x -> CB y] -> CB [y]
+parallel-apply-each = (x, fs, callback) !--> parallel-sequence (map (<| x), fs), callback
 
 
-serial-apply-each = (x, fs, callback) !-> serial-sequence (map (<| x), fs), callback
+# ### serial-apply-each
+
+# 	serial-apply-each :: x -> [x -> CB y] -> CB [y]
+serial-apply-each = (x, fs, callback) !--> serial-sequence (map (<| x), fs), callback
+
+
+# ### parallel-limited-apply-each
+
+# 	parallel-limited-apply-each :: x -> [x -> CB y] -> CB [y]
+parallel-limited-apply-each = limit serial-map, parallel-apply-each, concat
 
 
 # ### Waterfall
@@ -354,11 +366,11 @@ exports.parallel-sort-by = parallel-sort-by
 exports.parallel-sort-with = parallel-sort-with
 
 exports.serial-sequence = serial-sequence
-
 exports.parallel-sequence = parallel-sequence
 exports.parallel-limited-sequence = parallel-limited-sequence
 
 exports.parallel-apply-each = parallel-apply-each
 exports.serial-apply-each = serial-apply-each
+exports.parallel-limited-apply-each = parallel-limited-apply-each
 
 exports.waterfall = waterfall
