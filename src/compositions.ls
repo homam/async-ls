@@ -1,7 +1,45 @@
-{fold, foldr, flip, empty} = require \prelude-ls
-{filter, map, id} = require \prelude-ls
+# # Compositions
 
-# ## Asynchronous Compositions
+# #### Imports
+{fold, foldr, flip, empty, filter, map, id} = require \prelude-ls
+
+# ## Conventions
+# An asynchronous function takes a `callback` as its last argument.
+# `callback` is a function that is called once the asynchronois task is finished.
+
+# 	f = (a, b, ..., n, callback) !--> ...
+
+# Here since `f` is a curried function, someone can make a partial
+# version of it by just providing its first `n` arguments (but not the `callback`).
+
+# 	g = f a, b, ..., n
+
+# `g` is a function that takes a `callback`
+# function as its only argument. What we did here is equivalent to:
+
+# 	f = (a, b, ...) ->
+# 		(callback) !-> ...
+
+# Generally, if `f` is a funciton that takes `n + 1` arguments 
+# (the last argument is the `callback`),
+# then the curried version of `f` takes `n` arguments and
+# returns a function which takes a `callback` function
+# as its only argument.
+
+# This would be our definition of asynchronous functions:
+# > If function `f` returns a function `g` when `g` takes a `callback` as its only argument; then `f` is an asynchronous function.
+
+# Our callbacks will always receive two paremeters: `(error, result)`.
+
+# In our type documentation here `CB a` stands for a callback function with signature: `(err, a) -> void`
+# You can get the result of an asyncrhonous function with the return type of `CB a` by:
+
+# 	(err, a) <- f
+
+# This library provides powerful higher-order functions and other utilities
+# for working with asynchronous functions. 
+
+# ## Composition of Asynchronous Actions
 
 # ### returnA
 # Inject a value into an asynchronous action.

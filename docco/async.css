@@ -44,7 +44,7 @@
 
 body {
   font-family: "aller-light";
-  background: url('public/images/gray.png') #fff;
+  background: #fff;
   background-size: 322px;
   margin: 0;
 }
@@ -67,14 +67,6 @@ h1, h2, h3, h4, h5, h6 {
   }
   h2 {
     font-size: 1.3em;
-  }
-  h1:after {
-    content: "8";
-    display: block;
-    font-family: "fleurons";
-    color: #999;
-    font-size: 80px;
-    padding: 10px 0 25px;
   }
 
 a {

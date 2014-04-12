@@ -1,6 +1,6 @@
 # # Lists
 
-# Imports
+# #### Imports
 {
 	zip, each, concat, map, group-by, obj-to-pairs, div, sort-by, 
 	filter, id, empty, find
@@ -10,7 +10,8 @@
 	filterL
 } = require \./compositions
 
-# Private utility function: used to create the parallel-limited version of the functions.
+# #### limit
+# Utility to create the parallel-limited version of the asynchronous functions.
 
 # 	limit :: ((a -> CB b) -> [a] -> CB c) -> 
 #			 	((a -> CB b) -> [a] -> CB c) -> 
@@ -22,17 +23,20 @@ limit = (serial, parallel, projection, n, f, xs, callback) !-->
 	(returnA parts) `bindA` (serial (parallel f)) `ffmapA` projection <| callback
 
 
-# Private utility function: first item in a tuple
+# #### fst
+# First item in a tuple
 
 # 	fst :: [a, _] -> a
 fst = ([a, _]) -> a
 
-# Private utility function: second item in a tuple
+# #### snd
+# Second item in a tuple
 
 # 	snd :: [_, a] -> a
 snd = ([_, a]) -> a
 
-# Private utility function: partition the input `arr` 
+# #### partition-in-n-parts
+# Partition the input `arr` 
 # into smaller arrays of maximum `n` length.
 
 # 	partition-in-n-parts :: Int -> [x] -> [[x]]
@@ -43,7 +47,8 @@ partition-in-n-parts = (n, arr) -->
 		|> map (([_, ar]) -> (map (([a, _]) -> a), ar))
 
 
-# Private utility function: ensure that the input `f` will be called maximum one time.
+# #### once
+# Ensure that the input `f` will be called maximum one time.
 
 # 	once :: (a -> b) -> (a -> b)
 once = (f) ->
@@ -252,7 +257,14 @@ serial-find = (f, xs, callback) !-->
 	(serial-find-any f, xs) `ffmapA` snd <| callback
 
 
-#TODO: similar to parallel-filter
+# -----
+
+# ### Sort
+
+# ## parallel-sort-by
+# Sorts a list using the inputted function for making the comparison between the items.
+
+# 	parallel-sort-by :: (a -> CB b) -> [a] -> CB [a]
 parallel-sort-by = (f, xs, callback)  !-->
 	g = (x, cb) -> 
 		(returnA x) `bindA` f `ffmapA` ((fx) -> [fx, x]) <| cb
@@ -262,7 +274,19 @@ parallel-sort-by = (f, xs, callback)  !-->
 		|> fmapA (sort-by fst) >> (map snd) <| callback
 
 
+# #### subsets-of-size
+
+# 	subsets-of-size :: [b] -> Int -> [[b]]
+subsets-of-size = ([x, ...xs]:set, k) ->
+	| k == 0    => [[]]
+	| empty set => []
+	| otherwise => ([x] ++) `map` (xs `subsets-of-size` (k - 1)) ++ xs `subsets-of-size` k
+
+
 # ### parallel-sort-with
+# Takes a binary function which compares two items and returns either
+# a positive number, 0, or a negative number, and sorts the inputted list
+# using that function. 
 
 # 	parallel-sort-with :: (a -> a -> CB i) -> [a] -> CB [a]
 parallel-sort-with = (f, xs, callback) !-->
@@ -273,15 +297,13 @@ parallel-sort-with = (f, xs, callback) !-->
 
 	ilist = xs `zip` [0 to xs.length - 1]
 
-	filterL (-> [true, false]), ilist # power set of ilist: [[[o, i]]]
-		|> filter (.length == 2) 
-		|> returnA
+	returnA (ilist `subsets-of-size` 2) # [[[o, i]]]
 		|> fbindA parallel-map compareA
 		|> fmapA (cs) -> 
 			compare = ([a,ia],[b,ib]) ->
 				[_,_,c] = find (([x,y,_]) -> x == ia and y == ib), cs
 				c
-			ilist.sort compare .map ([i,_]) -> i
+			ilist.concat!.sort compare .map ([i,_]) -> i
 		<| callback
 
 #
@@ -335,6 +357,9 @@ parallel-limited-apply-each = limit serial-map, parallel-apply-each, concat
 waterfall = (x, fs, callback) -->
 	g = (a, y, cb) --> y a, cb
 	foldA g, x, fs <| callback
+
+
+# ### series-fold
 
 # 	series-fold :: (a -> b -> m a) -> a -> [b] -> m a
 series-fold = (..., callback) -> foldA ... <| callback
