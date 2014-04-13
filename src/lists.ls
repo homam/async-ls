@@ -6,7 +6,7 @@
 	filter, id, empty, find
 } = require \prelude-ls
 {
-	returnA, bindA, fbindA, ffmapA, fmapA, sequenceA, foldA,
+	returnA, bindA, fbindA, ffmapA, fmapA, sequenceA, foldA, filterA,
 	filterL
 } = require \./compositions
 
@@ -27,13 +27,13 @@ limit = (serial, parallel, projection, n, f, xs, callback) !-->
 # First item in a tuple
 
 # 	fst :: [a, _] -> a
-fst = ([a, _]) -> a
+fst = (.0)
 
 # #### snd
 # Second item in a tuple
 
 # 	snd :: [_, a] -> a
-snd = ([_, a]) -> a
+snd = (.1) # appreciate the irony
 
 # #### partition-in-n-parts
 # Partition the input `arr` 
@@ -118,7 +118,7 @@ parallel-map-limited = limit serial-map, parallel-map, concat
 
 # ### parallel-filter
 
-# 	parallel-filter :: (x -> CB Bool) -> [x] -> CB [x]
+# 	parallel-filter :: (x -> CB Boolean) -> [x] -> CB [x]
 parallel-filter = (f, xs, callback) !-->
 	g = (x, cb) -> 
 		(returnA x) `bindA` f `ffmapA` ((fx) -> [fx, x]) <| cb
@@ -130,22 +130,13 @@ parallel-filter = (f, xs, callback) !-->
 
 ### serial-filter
 
-# 	serial-filter :: (x -> CB Bool) -> [x] -> CB [x]
-serial-filter = (f, arr, callback) !-->
-	next = (f, [x,...xs]:list, callback, res) ->
-		return callback null, res if empty list
-		(err, fx) <- f x
-		if !!err
-			callback err, null
-		else
-			next f, xs, callback, (if fx then res ++ [x] else res)
-
-	next f, arr, callback, []
+# 	serial-filter :: (x -> CB Boolean) -> [x] -> CB [x]
+serial-filter = filterA
 
 
 # ### parallel-limited-filter
 
-# 	parallel-limited-filter :: Int -> (x -> CB Bool) -> [x] -> CB x
+# 	parallel-limited-filter :: Int -> (x -> CB Boolean) -> [x] -> CB x
 parallel-limited-filter = limit serial-map, parallel-filter, concat
 
 # -----
@@ -153,7 +144,7 @@ parallel-limited-filter = limit serial-map, parallel-filter, concat
 
 # Private utility function used to create `serial-find` and `serial-any` 
 
-# 	serial-find-any :: (x -> CB Bool) -> [x] -> CB [Bool, x]
+# 	serial-find-any :: (x -> CB Boolean) -> [x] -> CB [Boolean, x]
 serial-find-any = (f, xs, callback) !-->
 	return callback null, [false, null] if empty xs
 
@@ -173,7 +164,7 @@ serial-find-any = (f, xs, callback) !-->
 
 # Private utility function used to create `parallel-find` and `parallel-any` 
 
-# 	parallel-any :: (x -> CB Bool) -> [x] -> CB [Bool, x]
+# 	parallel-any :: (x -> CB Boolean) -> [x] -> CB [Boolean, x]
 parallel-find-any = (f, xs, callback) !-->
 	return callback null, [false, null] if empty xs
 
@@ -198,27 +189,27 @@ parallel-find-any = (f, xs, callback) !-->
 
 # ### parallel-any
 
-# 	parallel-any :: (x -> CB Bool) -> [x] -> CB Bool
+# 	parallel-any :: (x -> CB Boolean) -> [x] -> CB Boolean
 parallel-any = (f, xs, callback) !-->
 	(parallel-find-any f, xs) `ffmapA` fst <| callback
 
 
 # ### serial-any
 
-# serial-any :: (x -> CB Bool) -> [x] -> CB Bool
+# serial-any :: (x -> CB Boolean) -> [x] -> CB Boolean
 serial-any = (f, xs, callback) !-->
 	(serial-find-any f, xs) `ffmapA` fst <| callback
 
 
 # ### parallel-limited-any
 
-# 	parallel-limited-any :: Int -> (x -> CB Bool) -> [x] -> CB Bool
+# 	parallel-limited-any :: Int -> (x -> CB Boolean) -> [x] -> CB Boolean
 parallel-limited-any = limit serial-any, parallel-any, id
 
 
 # Private utility function: `all f = not any (not . f)`
 
-#	 make-all-by-any :: ((x -> CB Bool) -> [x] -> Bool) -> (x -> CB Bool) -> [x] -> CB Bool
+#	 make-all-by-any :: ((x -> CB Boolean) -> [x] -> Boolean) -> (x -> CB Boolean) -> [x] -> CB Boolean
 make-all-by-any = (which-any, f, xs, callback) !-->
 	g = (x, cb) ->
 		(returnA x) `bindA` f `ffmapA` (not) <| cb
@@ -227,32 +218,32 @@ make-all-by-any = (which-any, f, xs, callback) !-->
 
 # ### parallel-all
 
-# 	parallel-all :: (x -> CB Bool) -> [x] -> CB Bool
+# 	parallel-all :: (x -> CB Boolean) -> [x] -> CB Boolean
 parallel-all = make-all-by-any parallel-any
 
 
 # ### serial-all
 
-# 	serial-all :: (x -> CB Bool) -> [x] -> CB Bool
+# 	serial-all :: (x -> CB Boolean) -> [x] -> CB Boolean
 serial-all = make-all-by-any serial-any
 
 
 # ### parallel-limited-all
 
-# 	parallel-limited-all :: Int -> (x -> CB Bool) -> [x] -> CB Bool
+# 	parallel-limited-all :: Int -> (x -> CB Boolean) -> [x] -> CB Boolean
 parallel-limited-all = limit serial-all, parallel-all, id
 
 
 # ### parallel-find
 
-#	paralel-find :: (x -> CB Bool) -> [x] -> CB x
+#	paralel-find :: (x -> CB Boolean) -> [x] -> CB x
 parallel-find = (f, xs, callback) !-->
 	(parallel-find-any f, xs) `ffmapA` snd <| callback
 
 
 # ### serial-find
 
-#	serial-find :: (x -> CB Bool) -> [x] -> CB x
+#	serial-find :: (x -> CB Boolean) -> [x] -> CB x
 serial-find = (f, xs, callback) !-->
 	(serial-find-any f, xs) `ffmapA` snd <| callback
 
@@ -368,6 +359,9 @@ series-fold = (..., callback) -> foldA ... <| callback
 
 
 exports = exports or this
+
+exports.partition-in-n-parts = partition-in-n-parts
+
 exports.serial-map = serial-map
 exports.parallel-map = parallel-map
 exports.parallel-map-limited = parallel-map-limited

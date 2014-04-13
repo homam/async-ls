@@ -1,44 +1,23 @@
 # # Compositions
 
+# This library provides powerful higher-order functions and other utilities
+# for working with asynchronous functions.
+
 # #### Imports
 {fold, foldr, flip, empty, filter, map, id} = require \prelude-ls
 
 # ## Conventions
-# An asynchronous function takes a `callback` as its last argument.
-# `callback` is a function that is called once the asynchronois task is finished.
-
-# 	f = (a, b, ..., n, callback) !--> ...
-
-# Here since `f` is a curried function, someone can make a partial
-# version of it by just providing its first `n` arguments (but not the `callback`).
-
-# 	g = f a, b, ..., n
-
-# `g` is a function that takes a `callback`
-# function as its only argument. What we did here is equivalent to:
-
-# 	f = (a, b, ...) ->
-# 		(callback) !-> ...
-
-# Generally, if `f` is a funciton that takes `n + 1` arguments 
-# (the last argument is the `callback`),
-# then the curried version of `f` takes `n` arguments and
-# returns a function which takes a `callback` function
-# as its only argument.
 
 # This would be our definition of asynchronous functions:
-# > If function `f` returns a function `g` when `g` takes a `callback` as its only argument; then `f` is an asynchronous function.
+# > If function `f` returns function `g` and `g` takes a `callback` as its only argument; then `f` is an asynchronous function.
 
 # Our callbacks will always receive two paremeters: `(error, result)`.
 
-# In our type documentation here `CB a` stands for a callback function with signature: `(err, a) -> void`
-# You can get the result of an asyncrhonous function with the return type of `CB a` by:
+# In our documentation here `CB a` stands for a callback function with signature: `(err, a) -> void`
+# You can get the result of an asyncrhonous function (with a `callback` of type of `CB a`) by:
 
 # 	(err, a) <- f
-
-# This library provides powerful higher-order functions and other utilities
-# for working with asynchronous functions. 
-
+ 
 # ## Composition of Asynchronous Actions
 
 # ### returnA
@@ -69,12 +48,12 @@ ffmapA = flip fmapA
 
 
 # ### bindA
-# Sequentially compose two asynchronous actions, passing any value produced
+# Sequentially compose two asynchronous actions, passing the value produced
 # by the first as an argument to the second.
 
 # 	bindA :: CB x -> (x -> CB y) -> CB y
 bindA = (f, g) -->
-	(callback) ->
+	(callback) !->
 		(err, fx) <- f!
 		if !!err 
 			callback err, null
@@ -90,7 +69,11 @@ fbindA = flip bindA
 
 
 # ### kcompA
-# Left to right Kleisli composition of two asynchronous actions.
+# Similar to Left-to-right Kleisli composition, `kcompA` composes
+# two asynchronous actions passing the value produced
+# by the first as an argument to the second. The result is a new
+# asynchronous function that takes the argument of the first function.
+
 
 # 	kcompA :: (x -> CB y) -> (y -> CB z) -> (x -> CB z)
 kcompA = (f, g) ->
@@ -108,7 +91,7 @@ kcompA = (f, g) ->
 
 # 	foldA :: (a -> b -> m a) -> a -> [b] -> m a
 foldA = (f, a, [x,...xs]:list) -->
-	(callback) ->
+	(callback) !->
 		| empty list => callback null, a
 		| otherwise => 
 			(err, fax) <- f a, x
@@ -122,7 +105,7 @@ foldA = (f, a, [x,...xs]:list) -->
 
 # 	sequenceA :: [CB x] -> CB [x]
 sequenceA = (list) ->
-	(callback) ->
+	(callback) !->
 		k = ([mx, ...mxs]:input, mrs) ->
 			| empty input => callback null, mrs
 			| otherwise => bindA mx, ((r) -> k mxs, mrs ++ [r]) <| callback
@@ -131,10 +114,11 @@ sequenceA = (list) ->
 
 
 # ### filterA
+# Filter the given list by applying the given asynchronous predicate function.
 
-# 	filterA :: [x -> CB Bool] -> [x] -> CB [x]
+# 	filterA :: (x -> CB Boolean) -> [x] -> CB [x]
 filterA = (f, [x,...xs]:list, callback) -->
-	return callback null, [] if empty list
+	return callback null, [] if empty list 
 	(f x) 
 		|> fbindA (fx, cb) ->
 			(err, ys) <- filterA f, xs
@@ -242,7 +226,7 @@ bindL = (xs, g) ->
 
 fbindL = flip bindL
 
-# filterL :: (x -> [Bool]) -> [x] -> [[x]]
+# filterL :: (x -> [Boolean]) -> [x] -> [[x]]
 filterL = (f, [x,...xs]:list) -->
 	return returnL [] if empty list 
 	(f x) 

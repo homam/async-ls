@@ -1,5 +1,5 @@
 {odd} = require \prelude-ls
-{returnL, bindL, ffmapA, returnA, bindA, foldA}  = require \./../build/compositions
+{returnL, bindL, ffmapA, returnA, bindA, foldA, filterA}  = require \./../build/compositions
 {
 	parallel-map-limited, serial-map, parallel-map, 
 	parallel-filter, serial-filter, parallel-limited-filter,
@@ -90,6 +90,17 @@ describe 'Filter', ->
 
 		_it 'on [1,2,3,4,5,6,7,8,9,10] should be [1,2,3,4,5]', (done) ->
 			(err, res) <- parallel-filter less-than6A, [1 to 10]
+			assert.deep-equal [1 to 5], res
+			done!
+
+	describe 'serial-filter', ->
+		_it 'on [] should be []', (done) ->
+			(err, res) <- serial-filter less-than6A, []
+			assert.deep-equal [], res
+			done!
+
+		_it 'on [1,2,3,4,5,6,7,8,9,10] should be [1,2,3,4,5]', (done) ->
+			(err, res) <- serial-filter less-than6A, [1 to 10]
 			assert.deep-equal [1 to 5], res
 			done!
 
