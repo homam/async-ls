@@ -1,7 +1,10 @@
-# # Compositions
-
 # This library provides powerful higher-order functions and other utilities
 # for working with asynchronous functions.
+
+# For LiveScript, this library to to [async|https://github.com/caolan/async] is similar to 
+# [prelude.ls|http://preludels.com/] to [Underscore.js|http://underscorejs.org/].
+
+# # Compositions
 
 # #### Imports
 {fold, foldr, flip, empty, filter, map, id} = require \prelude-ls
@@ -114,7 +117,7 @@ sequenceA = (list) ->
 
 
 # ### filterA
-# Filter the given list by applying the given asynchronous predicate function.
+# Filter the list by applying the asynchronous predicate function.
 
 # 	filterA :: (x -> CB Boolean) -> [x] -> CB [x]
 filterA = (f, [x,...xs]:list, callback) -->
