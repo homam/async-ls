@@ -87,36 +87,34 @@ serial-any = (f, [x,...xs]:list) -->
 mplus-promise-boolean-object = (pa, pb) -->
 	new Promise (success, error) ->
 		pa |> fbindP ([b, o]) ->
-			console.log arguments
-			match b
 			| b => success [b, o]
 			| otherwise =>
 				pb `bindP` success
 
 
-msum-promise-boolean-object = (mxs) -> foldr mplus-promise-boolean-object, (returnP {b:false,o: null}), mxs
+msum-promise-boolean-object = (mxs) -> foldr mplus-promise-boolean-object, (returnP [false, null]), mxs
 
 
-mplus-promise-boolean = (pa, pb) -->
-	new Promise (success, error) ->
-		pa |> fbindP (pax) ->
-			| pax => success true
-			| otherwise =>
-				pb `bindP` success
+# mplus-promise-boolean = (pa, pb) -->
+# 	new Promise (success, error) ->
+# 		pa |> fbindP (pax) ->
+# 			| pax => success true
+# 			| otherwise =>
+# 				pb `bindP` success
+
+# msum-promise-boolean = (mxs) -> foldr mplus-promise-boolean, (returnP false), mxs
+
+# parallel-any = (f, xs) --> msum-promise-boolean <| map f, xs
 
 
-msum-promise-boolean = (mxs) -> foldr mplus-promise-boolean, (returnP false), mxs
+parallel-find-any = (f, xs) --> 
+	map ((x) -> (f x) `ffmapP` (b) -> [b,x] ), xs 
+		|> msum-promise-boolean-object
+
+parallel-any = (f, xs) --> (parallel-find-any f, xs) `ffmapP` (.0)
 
 
-
-
-
-
-
-parallel-any = (f, xs) --> msum-promise-boolean <| map f, xs
-
-#TODO: f must return {b,o}
-#parallel-any = (f, xs) --> msum-promise-boolean-object <| map f, xs
+parallel-find = (f, xs) --> (parallel-find-any f, xs) `ffmapP` (.1)
 
 
 
@@ -162,9 +160,6 @@ logP = (msg, p) -->
 	p.catch -> console.log \^==, msg, \=, it
 	p
 
-
-#mplus-promise-boolean (returnP true), (returnP false) |> logP ''
-msum-promise-boolean [(returnP false), (returnP true), (returnP false)] |> logP ''
 
 
 
