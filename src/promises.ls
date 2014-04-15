@@ -113,8 +113,9 @@ parallel-find-any = (f, xs) -->
 
 parallel-any = (f, xs) --> (parallel-find-any f, xs) `ffmapP` (.0)
 
-
 parallel-find = (f, xs) --> (parallel-find-any f, xs) `ffmapP` (.1)
+
+parallel-all = (f, xs) --> (parallel-find-any ((x) -> (f x) `ffmapP` (not)), xs) `ffmapP` ((not) . (.0))
 
 
 
@@ -202,4 +203,8 @@ do ->
 do ->
 	tl = new Date!
 	parallel-any is-five, [1 to 10] |> logP "parallel-any" |> fmapP -> console.log "parallel-any #{new Date! - tl}"
+
+do ->
+	tl = new Date!
+	parallel-all more-than-five, [6 to 10] |> logP "parallel-all" |> fmapP -> console.log "parallel-all #{new Date! - tl}"
 
