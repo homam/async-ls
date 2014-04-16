@@ -124,12 +124,32 @@ limit = (serial, parallel, projection, n, f, xs) -->
 	parts = partition-in-n-parts n, xs
 	(returnP parts) `bindP` (serial (parallel f)) `ffmapP` projection
 
-parallel-map-limited = limit serial-map, parallel-map, concat
+parallel-limited-map = limit serial-map, parallel-map, concat
 
 # 	parallel-limited-filter :: Int -> (x -> CB Boolean) -> [x] -> CB x
 parallel-limited-filter = limit serial-map, parallel-filter, concat
 
 
+
+exports = exports || this
+exports <<< {
+	returnP,
+	fmapP,
+	ffmapP,
+	bindP,
+	fbindP,
+	filterP,
+
+	serial-filter,
+	parallel-filter,
+
+	serial-map
+	parallel-map
+
+	parallel-limited-map
+}
+
+return
 
 double = (x) ->
 	new Promise (res, rej) ->
@@ -155,16 +175,10 @@ add = (a, b) ->
 			res a+b
 		, 1
 
-
 logP = (msg, p) -->
 	p.then -> console.log \===, msg, \=, it
 	p.catch -> console.log \^==, msg, \=, it
 	p
-
-
-
-
-
 
 
 
@@ -193,7 +207,7 @@ ts = new Date!
 serial-map double, [1 to 10] |> logP "serial-map" |> fmapP -> console.log "serial-map #{new Date! - ts}"
 
 tl = new Date!
-parallel-map-limited 2, double, [1 to 10] |> logP "parallel-map-limited" |> fmapP -> console.log "parallel-map-limited #{new Date! - tl}"
+parallel-limited-map 2, double, [1 to 10] |> logP "parallel-limited-map" |> fmapP -> console.log "parallel-limited-map #{new Date! - tl}"
 
 
 do ->
