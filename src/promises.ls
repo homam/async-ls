@@ -1,34 +1,41 @@
 {
 	id, map, zip, empty, flip, foldr, filter,
-	concat, group-by, div, obj-to-pairs, last
+	concat, group-by, div, obj-to-pairs, last,
+	sort-by, find
 } = require \prelude-ls
 {Promise} = require \es6-promise
 
 # 	partition-in-n-parts :: Int -> [x] -> [[x]]
 partition-in-n-parts = (n, arr) -->
 	(arr `zip` [0 to arr.length - 1]) 
-		|> (group-by ([a, i]) -> i `div` n) 
+		|> (group-by ([_, i]) -> i `div` n) 
 		|> obj-to-pairs 
-		|> map (([_, ar]) -> (map (([a, _]) -> a), ar))
+		|> map (.1) >> map (.0)
 
-
+# 	returnP :: x -> p x
 returnP = (x) ->
 	Promise.resolve x
 
-# 	fmapA :: (x -> y) -> P x -> P y
+
+# 	fmapP :: (x -> y) -> p x -> p y
 fmapP = (f, g) -->
 	g.then -> f it
 
 
-# 	bindA :: CB x -> (x -> CB y) -> CB y
+# 	ffmapP :: p x -> (x -> y) -> p y
+ffmapP = flip fmapP
+
+
+# 	bindA :: p x -> (x -> p y) -> p y
 bindP = (f, g) -->
 	f.then (fx) ->
 		g fx
 
+# 	fbindP :: (x -> p y) -> p x -> p y
 fbindP = flip bindP
 
-ffmapP = flip fmapP
 
+# 	filterP :: (x -> p Boolean) -> [x] -> p [x]
 # serial
 filterP = (f, [x,...xs]:list) -->
 	return returnP [] if empty list
@@ -38,9 +45,13 @@ filterP = (f, [x,...xs]:list) -->
 			|> fbindP (ys) ->
 				returnP if fx then [x] ++ ys else ys
 
+
+# 	serial-filter :: (x -> p Boolean) -> [x] -> p [x]
 serial-filter = filterP
 
-# sequenceP :: [P x] -> P [x]
+
+# 	sequenceP :: [p x] -> p [x]
+# parallel
 sequenceP = (mxs) ->
 	k = (m, mp) -->
 		m |> fbindP (x) ->
@@ -50,7 +61,7 @@ sequenceP = (mxs) ->
 	foldr k, (returnP []), mxs
 
 
-# foldP :: (a -> b -> E a) -> a -> [b] -> E a
+# foldP :: (a -> b -> p a) -> a -> [b] -> p a
 foldP = (f, a, [x,...xs]:list) ->
 	| empty list => returnP a
 	| otherwise => (f a, x) `bindP` ((fax) -> foldP f, fax, xs)
@@ -108,18 +119,18 @@ parallel-find-any = (f, xs) -->
 		|> msum-promise-boolean-object
 
 
-# 	parallel-any :: (x -> CB Boolean) -> [x] -> CB Boolean
+# 	parallel-any :: (x -> p Boolean) -> [x] -> p Boolean
 parallel-any = (f, xs) --> (parallel-find-any f, xs) `ffmapP` (.0)
 
 # 	parallel-find :: (x -> m Boolean) -> [x] -> m 
 parallel-find = (f, xs) --> (parallel-find-any f, xs) `ffmapP` (.1)
 
 
-# 	parallel-all :: (x -> CB Boolean) -> [x] -> CB Boolean
+# 	parallel-all :: (x -> p Boolean) -> [x] -> p Boolean
 parallel-all = (f, xs) --> (parallel-find-any ((x) -> (f x) `ffmapP` (not)), xs) `ffmapP` ((not) . (.0))
 
 
-# 	serial-all :: (x -> CB Boolean) -> [x] -> CB Boolean
+# 	serial-all :: (x -> p Boolean) -> [x] -> p Boolean
 serial-all = (f, xs) --> (serial-find-any ((_, b) --> [b, _]), ((x) --> (f x) `ffmapP` (not)), xs) `ffmapP` ((not) . (.0))
 
 
@@ -153,18 +164,57 @@ parallel-limited-all = limit serial-all, parallel-all, id
 parallel-limited-find = limit (serial-find-any ((x, [b, y]) --> [b, y])), parallel-find-any, (.1)
 
 
+# 	parallel-sort-by :: (a -> CB b) -> [a] -> CB [a]
+parallel-sort-by = (f, xs)  -->
+	g = (x) -> 
+		(returnP x) `bindP` f `ffmapP` ((fx) -> [fx, x])
+
+	(returnP xs) 
+		|> fbindP (parallel-map g) 
+		|> fmapP (sort-by (.0)) >> (map (.1))
+
+
+# 	subsets-of-size :: [b] -> Int -> [[b]]
+subsets-of-size = ([x, ...xs]:set, k) ->
+	| k == 0    => [[]]
+	| empty set => []
+	| otherwise => ([x] ++) `map` (xs `subsets-of-size` (k - 1)) ++ xs `subsets-of-size` k
+
+
+# ### parallel-sort-with
+# Takes a binary function which compares two items and returns either
+# a positive number, 0, or a negative number, and sorts the inputted list
+# using that function. 
+
+# 	parallel-sort-with :: (a -> a -> CB i) -> [a] -> CB [a]
+parallel-sort-with = (f, xs) -->
+	compareP = ([[a,ia],[b, ib]]) -->
+		(f a, b)
+			|> fbindP ((c) -> [ia, ib, c])
+
+	ilist = xs `zip` [0 to xs.length - 1]
+
+	returnP (ilist `subsets-of-size` 2) # [[[o, i]]]
+		|> fbindP parallel-map compareP
+		|> fmapP (cs) -> 
+			compare = ([a,ia],[b,ib]) ->
+				[_,_,c] = find (([x,y,_]) -> x == ia and y == ib), cs
+				c
+			ilist.concat!.sort compare .map ([i,_]) -> i
+
 
 exports = exports || this
 exports <<< {
-	returnP,
-	fmapP,
-	ffmapP,
-	bindP,
-	fbindP,
-	filterP,
+	returnP
+	fmapP 
+	ffmapP
+	bindP 
+	fbindP
+	foldP
+	filterP
 
-	serial-filter,
-	parallel-filter,
+	serial-filter
+	parallel-filter
 	parallel-limited-filter
 
 	serial-map
@@ -182,6 +232,9 @@ exports <<< {
 	parallel-find
 	serial-find
 	parallel-limited-find
+
+	parallel-sort-by
+	parallel-sort-with
 
 	parallel-find-any
 }
