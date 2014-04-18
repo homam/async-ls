@@ -76,17 +76,19 @@ parallel-filter = (f, xs) -->
 		|> fmapP ((filter (.0)) >> (map (.1))) 
 
 
-# 	serial-find-any :: (x -> Boolean) -> [x] -> [[Boolean, x]]
-serial-find-any = (f, [x,...xs]:list) -->
+# 	serial-find-any :: ((x, Boolean) -> [Boolean, _]) -> (x -> p Boolean) -> [x] -> p [Boolean, x]
+# 	serial-find-any :: ((x, [Boolean, x]) -> [Boolean, x]) -> (x -> p Boolean) -> [x] -> p [Boolean, x]
+serial-find-any = (selector, f, [x,...xs]:list) -->
 	return returnP [false, null] if empty list
 	(f x) 
-		|> fbindP (fx) -> 
-			| fx => returnP [fx, x]
-			| otherwise => (serial-find-any f, xs) 
+		|> fmapP selector x 
+		|> fbindP ([b, x]) -> 
+			| b => returnP [b, x]
+			| otherwise => (serial-find-any selector, f, xs)
 
 
 # 	serial-any :: (x -> m Boolean) -> [x] -> m Boolean
-serial-any = (f, xs) --> (serial-find-any f, xs) `ffmapP` (.0)
+serial-any = (f, xs) --> (serial-find-any ((_, b) --> [b, _]), f, xs) `ffmapP` (.0)
 
 
 # 	mplus-promise-boolean-object :: m [Boolean, x] -> m [Boolean, x] -> m [Boolean, x]
@@ -118,13 +120,13 @@ parallel-all = (f, xs) --> (parallel-find-any ((x) -> (f x) `ffmapP` (not)), xs)
 
 
 # 	serial-all :: (x -> CB Boolean) -> [x] -> CB Boolean
-serial-all = (f, xs) --> (serial-find-any ((x) -> (f x) `ffmapP` (not)), xs) `ffmapP` ((not) . (.0))
+serial-all = (f, xs) --> (serial-find-any ((_, b) --> [b, _]), ((x) --> (f x) `ffmapP` (not)), xs) `ffmapP` ((not) . (.0))
 
 
 # 	serial-find :: (x -> m Boolean) -> [x] -> m x
-serial-find = (f, xs) --> (serial-find-any f, xs) `ffmapP` (.1)
-
-
+serial-find = (f, xs) --> (serial-find-any ((x, [b, y]) --> 
+	[b, y]), ((x) -> (f x) `ffmapP` ((fx) -> 
+		[fx, x])), xs) `ffmapP` (.1)
 
 
 limit = (serial, parallel, projection, n, f, xs) -->
@@ -145,17 +147,11 @@ parallel-limited-any = limit serial-any, parallel-any, id
 
 # 	parallel-limited-all :: Int -> (x -> CB Boolean) -> [x] -> CB Boolean
 parallel-limited-all = limit serial-all, parallel-all, id
-
-
-serial-find-any-by-find-any = (f, [x,...xs]:list) -->
-	return returnP [false, null] if empty list
-	(f x) 
-		|> fbindP ([b, x]) -> 
-			| b => returnP [b, x]
-			| otherwise => (serial-find-any-by-find-any f, xs) 
+ 
 
 # 	parallel-limited-any :: Int -> (x -> CB Boolean) -> [x] -> CB Boolean
-parallel-limited-find = limit serial-find-any-by-find-any, parallel-find-any, (.1)
+parallel-limited-find = limit (serial-find-any ((x, [b, y]) --> [b, y])), parallel-find-any, (.1)
+
 
 
 exports = exports || this
