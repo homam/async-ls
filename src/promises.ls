@@ -1,7 +1,7 @@
 {
 	id, map, zip, empty, flip, foldr, filter,
 	concat, group-by, div, obj-to-pairs, last,
-	sort-by, find
+	sort-by, find, flatten
 } = require \prelude-ls
 Promise = require \./lazypromise
 
@@ -332,6 +332,8 @@ to-callback = (p, callback) !-->
 # exports
 exports = exports || this
 exports <<< {
+	LazyPromise: Promise
+
 	returnP
 	fmapP 
 	ffmapP
