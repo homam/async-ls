@@ -10,7 +10,8 @@
     "prelude-ls": "~1.1.0",
     "LiveScript": "~1.2.0",
     "browserify": "*",
-    "es6-promise": "~0.1.1"
+    "promise": "~4.0.0",
+    "inherits": "~2.0.1"
   },
   "devDependencies": {
     "mocha": "~1.18.2"

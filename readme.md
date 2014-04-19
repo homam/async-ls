@@ -1,8 +1,16 @@
-# This library provides powerful higher-order functions and other utilities
-# for working with asynchronous functions with callbacks or ES6 promises.
+This library provides powerful higher-order functions and other utilities
+for working with asynchronous functions with callbacks or ES6 promises.
 
-# The callback functions are available in `require \async-ls .callbacks` and 
-# promise based functions are in `require \async-ls .promises`
+The callback utility functions are available in 
+
+	require \async-ls .callbacks
+	
+and promise based functions are in 
+
+	require \async-ls .promises
+	
+The callbacks and promises functions are similar in their input arguments and their result. Callback functions return a callback function with the signature of `(error, result) -> void` and promise functions return a promise object.
+
 
 # Promise Utilities
 
