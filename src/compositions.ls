@@ -1,7 +1,7 @@
 # This library provides powerful higher-order functions and other utilities
 # for working with asynchronous functions.
 
-# For LiveScript, this library to to [async|https://github.com/caolan/async] is similar to 
+# For LiveScript, this library to [async|https://github.com/caolan/async] is similar to 
 # [prelude.ls|http://preludels.com/] to [Underscore.js|http://underscorejs.org/].
 
 # # Compositions
