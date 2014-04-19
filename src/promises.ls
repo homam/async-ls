@@ -227,6 +227,9 @@ parallel-sort-with = (f, xs) -->
 			ilist.concat!.sort compare .map ([i,_]) -> i
 
 
+# 	waterfall :: x -> (x -> p x) -> p x
+waterfall = (x, fs) -->
+	foldP ((a, y) -> y a), x, fs
 
 to-callback = (p, callback) !-->
 		p.then ->
@@ -277,6 +280,10 @@ exports <<< {
 	parallel-apply-each
 	serial-apply-each
 	parallel-limited-apply-each
+
+	waterfall
+
+	to-callback
 
 	parallel-find-any
 }

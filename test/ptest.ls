@@ -38,6 +38,8 @@
 	serial-apply-each
 	parallel-limited-apply-each
 
+	waterfall
+
 
 	parallel-find-any
 } = require \./../build/promises
@@ -179,11 +181,13 @@ add = (a, b) ->
 			res a+b
 		, 20
 
-double-error-at-five = (x) ->
+double-error-at-n = (n, x) -->
 	new Promise (res, rej) ->
 		setTimeout ->
-			if x is not 5 then (res x*2) else (rej 'Error at x=5')
+			if x is not n then (res x*2) else (rej 'Error at x=5')
 		, 20
+
+double-error-at-five = double-error-at-n 5
 
 more-than-five = (x) ->
 	new Promise (res, rej) ->
@@ -465,3 +469,13 @@ describe 'apply-each', ->
 		_it 'on 10, [double, double, double, double, double] should be [20, 20, 20, 20, 20] in 60 milliseconds', (done) ->
 			parallel-limited-apply-each 2, 10, [double, double, double, double, double] |> p-deep-equal-in-time done, [20, 20, 20, 20, 20], 60
 
+
+describe 'waterfall', ->
+	_it 'on 30 [] should be 30', (done) ->
+		waterfall 30, [] |> p-deep-equal-in-time done, 30, 0
+
+	_it 'on 30 [double, double, double] should be 240 in 60 milliseconds', (done) ->
+		waterfall 30, [double, double, double] |> p-equal-in-time done, 240, 60
+
+	_it 'on 30 [double, double-err, double] should be error in 40 milliseconds', (done) ->
+		waterfall 30, [double, (double-error-at-n 60), double] |> p-is-error-in-time done, 40
