@@ -27,7 +27,7 @@ Map a normal function over a promise.
 
 
 
-### ffmapP`
+### ffmapP
 `fmapA` with its arguments flipped.
 > ffmapP :: p x -> (x -> y) -> p y
 
