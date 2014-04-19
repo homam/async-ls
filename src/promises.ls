@@ -51,7 +51,7 @@ serial-filter = filterP
 
 
 # 	sequenceP :: [p x] -> p [x]
-# parallel
+# This executes `mxs` in parallel in practice. Serial sequence requires lazy Promises
 sequenceP = (mxs) ->
 	k = (m, mp) -->
 		m |> fbindP (x) ->
@@ -61,7 +61,9 @@ sequenceP = (mxs) ->
 	foldr k, (returnP []), mxs
 
 
+
 # foldP :: (a -> b -> p a) -> a -> [b] -> p a
+# serial
 foldP = (f, a, [x,...xs]:list) ->
 	| empty list => returnP a
 	| otherwise => (f a, x) `bindP` ((fax) -> foldP f, fax, xs)
@@ -203,6 +205,14 @@ parallel-sort-with = (f, xs) -->
 			ilist.concat!.sort compare .map ([i,_]) -> i
 
 
+
+to-callback = (p, callback) !-->
+		p.then ->
+			callback null, it
+		p.catch ->
+			callback it, null
+
+
 exports = exports || this
 exports <<< {
 	returnP
@@ -212,6 +222,7 @@ exports <<< {
 	fbindP
 	foldP
 	filterP
+	sequenceP
 
 	serial-filter
 	parallel-filter
