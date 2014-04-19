@@ -6,8 +6,10 @@
 	fbindP
 	foldP
 	filterP
+
 	sequenceP
 	serial-sequence
+	parallel-limited-sequence
 
 	serial-filter
 	parallel-filter
@@ -32,10 +34,14 @@
 	parallel-sort-by
 	parallel-sort-with
 
+	parallel-apply-each
+	serial-apply-each
+	parallel-limited-apply-each
+
+
 	parallel-find-any
 } = require \./../build/promises
 {each} = require \prelude-ls
-# Promise = require \promise
 Promise = require \./../build/lazypromise
 assert = require 'assert'
 _it = it
@@ -198,7 +204,6 @@ less-than-ten = (x) ->
 		, 20
 
 
-
 describe 'find', ->
 
 	describe 'parallel-find', ->
@@ -336,14 +341,17 @@ describe 'Compositions', ->
 			foldP add, 1, [1 to 10] |> p-equal-in-time done, 56, 200
 
 	describe 'sequenceP', ->
-
 		_it 'on [(double 1) .. (double 10)] should be [2, 4, ..., 20] in 20 milliseconds', (done) ->
 			sequenceP [(double i) for i in [1 to 10]] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 20
 
 	describe 'serial-sequence', ->
-
 		_it 'on [(double 1) .. (double 10)] should be [2, 4, ..., 20] in 200 milliseconds', (done) ->
 			serial-sequence [(double i) for i in [1 to 10]] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 200
+
+	describe 'parallel-limited-sequence', ->
+
+		_it 'on 2, [(double 1) .. (double 10)] should be [2, 4, ..., 20] in 100 milliseconds', (done) ->
+			parallel-limited-sequence 2, [(double i) for i in [1 to 10]] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 100
 
 describe 'map', ->
 
@@ -430,4 +438,30 @@ describe 'sort', ->
 
 			parallel-sort-with f, [2, 1, 3, 2, 4, 8, 5, 12, -2] |> p-is-error done
 
+
+describe 'apply-each', ->
+
+	describe 'parallel-apply-each', ->
+
+		_it 'on [] should be []', (done) ->
+			parallel-apply-each 5, [] |>p-deep-equal-in-time done, [], 0
+
+		_it 'on 10, [double, double, double] should be [20, 20] in 20 milliseconds', (done) ->
+			parallel-apply-each 10, [double, double, double] |> p-deep-equal-in-time done, [20, 20, 20], 20
+
+	describe 'serial-apply-each', ->
+
+		_it 'on [] should be []', (done) ->
+			serial-apply-each 5, [] |>p-deep-equal-in-time done, [], 0
+
+		_it 'on 10, [double, double, double] should be [20, 20] in 60 milliseconds', (done) ->
+			serial-apply-each 10, [double, double, double] |> p-deep-equal-in-time done, [20, 20, 20], 60
+
+	describe 'parallel-limited-apply-each' , ->
+
+		_it 'on 2, [] should be [] in 0 milliseconds', (done) ->
+			parallel-limited-apply-each 2, 5, [] |>p-deep-equal-in-time done, [], 0
+
+		_it 'on 10, [double, double, double, double, double] should be [20, 20, 20, 20, 20] in 60 milliseconds', (done) ->
+			parallel-limited-apply-each 2, 10, [double, double, double, double, double] |> p-deep-equal-in-time done, [20, 20, 20, 20, 20], 60
 

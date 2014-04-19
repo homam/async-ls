@@ -154,23 +154,41 @@ limit = (serial, parallel, projection, n, f, xs) -->
 parallel-limited-map = limit serial-map, parallel-map, concat
 
 
-# 	parallel-limited-filter :: Int -> (x -> CB Boolean) -> [x] -> CB x
+# 	parallel-limited-filter :: Int -> (x -> p Boolean) -> [x] -> p x
 parallel-limited-filter = limit serial-map, parallel-filter, concat
 
 
-# 	parallel-limited-any :: Int -> (x -> CB Boolean) -> [x] -> CB Boolean
+# 	parallel-limited-any :: Int -> (x -> p Boolean) -> [x] -> p Boolean
 parallel-limited-any = limit serial-any, parallel-any, id
 
 
-# 	parallel-limited-all :: Int -> (x -> CB Boolean) -> [x] -> CB Boolean
+# 	parallel-limited-all :: Int -> (x -> p Boolean) -> [x] -> p Boolean
 parallel-limited-all = limit serial-all, parallel-all, id
  
 
-# 	parallel-limited-any :: Int -> (x -> CB Boolean) -> [x] -> CB Boolean
+# 	parallel-limited-any :: Int -> (x -> p Boolean) -> [x] -> p Boolean
 parallel-limited-find = limit (serial-find-any ((x, [b, y]) --> [b, y])), parallel-find-any, (.1)
 
 
-# 	parallel-sort-by :: (a -> CB b) -> [a] -> CB [a]
+# 	parallel-limited-sequence :: Int -> [p x] -> p [x]
+parallel-limited-sequence = (n, xs) -->
+	parts = partition-in-n-parts n, xs
+	(returnP parts) `bindP` (serial-map sequenceP) `ffmapP` concat
+
+
+# 	parallel-apply-each :: x -> [x -> p y] -> p [y]
+parallel-apply-each = (x, fs) --> parallel-sequence (map (<| x), fs)
+
+
+# 	serial-apply-each :: x -> [x -> p y] -> p [y]
+serial-apply-each = (x, fs) --> serial-sequence (map (<| x), fs)
+
+
+# 	parallel-limited-apply-each :: x -> [x -> CB y] -> CB [y]
+parallel-limited-apply-each = limit serial-map, parallel-apply-each, concat
+
+
+# 	parallel-sort-by :: (a -> p b) -> [a] -> p [a]
 parallel-sort-by = (f, xs)  -->
 	g = (x) -> 
 		(returnP x) `bindP` f `ffmapP` ((fx) -> [fx, x])
@@ -192,7 +210,7 @@ subsets-of-size = ([x, ...xs]:set, k) ->
 # a positive number, 0, or a negative number, and sorts the inputted list
 # using that function. 
 
-# 	parallel-sort-with :: (a -> a -> CB i) -> [a] -> CB [a]
+# 	parallel-sort-with :: (a -> a -> p i) -> [a] -> p [a]
 parallel-sort-with = (f, xs) -->
 	compareP = ([[a,ia],[b, ib]]) -->
 		(f a, b)
@@ -227,8 +245,10 @@ exports <<< {
 	foldP
 	filterP
 	sequenceP
+
 	parallel-sequence
 	serial-sequence
+	parallel-limited-sequence
 
 	serial-filter
 	parallel-filter
@@ -252,6 +272,11 @@ exports <<< {
 
 	parallel-sort-by
 	parallel-sort-with
+
+
+	parallel-apply-each
+	serial-apply-each
+	parallel-limited-apply-each
 
 	parallel-find-any
 }
