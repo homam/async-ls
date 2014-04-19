@@ -39,9 +39,6 @@
 	parallel-limited-apply-each
 
 	waterfall
-
-
-	parallel-find-any
 } = require \./../build/promises
 {each} = require \prelude-ls
 Promise = require \./../build/lazypromise
@@ -301,15 +298,6 @@ describe 'all', ->
 
 		_it 'on [0 to 9] should be true in 80 milliseconds', (done) ->
 			parallel-limited-all 3, less-than-ten, [0 to 9] |> p-equal-in-time done, true, 80
-
-describe 'parallel-find-any', ->
-
-	_it 'on [] should be [false, null] in 0 milliseconds', (done) ->
-		parallel-find-any more-than-five, [] |> p-deep-equal-in-time done, [false, null], 0
-
-	_it 'on [1 to 10] should be [true, 6] in 20 milliseconds', (done) ->
-		parallel-find-any more-than-five, [1 to 10] |> p-deep-equal-in-time done, [true, 6], 20
-
 
 describe 'Compositions', ->
 
