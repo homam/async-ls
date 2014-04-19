@@ -7,6 +7,7 @@
 	foldP
 	filterP
 	sequenceP
+	serial-sequence
 
 	serial-filter
 	parallel-filter
@@ -34,7 +35,8 @@
 	parallel-find-any
 } = require \./../build/promises
 {each} = require \prelude-ls
-{Promise} = require \es6-promise
+# Promise = require \promise
+Promise = require \./../build/lazypromise
 assert = require 'assert'
 _it = it
 
@@ -337,6 +339,11 @@ describe 'Compositions', ->
 
 		_it 'on [(double 1) .. (double 10)] should be [2, 4, ..., 20] in 20 milliseconds', (done) ->
 			sequenceP [(double i) for i in [1 to 10]] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 20
+
+	describe 'serial-sequence', ->
+
+		_it 'on [(double 1) .. (double 10)] should be [2, 4, ..., 20] in 200 milliseconds', (done) ->
+			serial-sequence [(double i) for i in [1 to 10]] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 200
 
 describe 'map', ->
 

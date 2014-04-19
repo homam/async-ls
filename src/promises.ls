@@ -3,7 +3,7 @@
 	concat, group-by, div, obj-to-pairs, last,
 	sort-by, find
 } = require \prelude-ls
-{Promise} = require \es6-promise
+Promise = require \./lazypromise
 
 # 	partition-in-n-parts :: Int -> [x] -> [[x]]
 partition-in-n-parts = (n, arr) -->
@@ -51,7 +51,6 @@ serial-filter = filterP
 
 
 # 	sequenceP :: [p x] -> p [x]
-# This executes `mxs` in parallel in practice. Serial sequence requires lazy Promises
 sequenceP = (mxs) ->
 	k = (m, mp) -->
 		m |> fbindP (x) ->
@@ -60,6 +59,11 @@ sequenceP = (mxs) ->
 
 	foldr k, (returnP []), mxs
 
+parallel-sequence = sequenceP
+
+
+serial-sequence = (list) ->
+	foldP ((a, x) -> x `ffmapP` (-> a ++ [it])), [], list
 
 
 # foldP :: (a -> b -> p a) -> a -> [b] -> p a
@@ -223,6 +227,8 @@ exports <<< {
 	foldP
 	filterP
 	sequenceP
+	parallel-sequence
+	serial-sequence
 
 	serial-filter
 	parallel-filter
