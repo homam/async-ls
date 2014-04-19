@@ -27,7 +27,7 @@ Map a normal function over a promise.
 
 
 
-### ffmapP
+### ffmapP`
 `fmapA` with its arguments flipped.
 > ffmapP :: p x -> (x -> y) -> p y
 
@@ -36,7 +36,7 @@ Map a normal function over a promise.
 ### bindP
 Sequentially compose two promises, passing the value produced
 by the first as an argument to the second.
-	bindP :: p x -> (x -> p y) -> p y
+> bindP :: p x -> (x -> p y) -> p y
 
 
 
@@ -139,6 +139,7 @@ Private utility, an abstraction for `parallel-any` and `parallel-find`.
 #### serial-find-any
 Private utility, it is an abstraction of `serial-find` and `serial-any`.
 > serial-find-any :: ((x, Boolean) -> [Boolean, _]) -> (x -> p Boolean) -> [x] -> p [Boolean, x]
+>
 > serial-find-any :: ((x, [Boolean, x]) -> [Boolean, x]) -> (x -> p Boolean) -> [x] -> p [Boolean, x]
 
 
