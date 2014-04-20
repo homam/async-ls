@@ -268,7 +268,7 @@ serial-apply-each = (x, fs) --> serial-sequence (map (<| x), fs)
 
 
 # ### parallel-limited-apply-each
-# > parallel-limited-apply-each :: x -> [x -> CB y] -> CB [y]
+# > parallel-limited-apply-each :: x -> [x -> p y] -> p [y]
 parallel-limited-apply-each = limit serial-map, parallel-apply-each, concat
 
 
@@ -321,12 +321,48 @@ waterfall = (x, fs) -->
 
 
 # ### to-callback
+# Convert the promise object to a callback with the signature of `(error, result) -> void`
 # > p x -> CB x
 to-callback = (p, callback) !-->
 	p.then ->
 		callback null, it
 	p.catch ->
 		callback it, null
+
+
+# ### from-value-callback
+# Make a promise object from a callback with the signature of `(result) -> void`, like `fs.exist`
+# > Cb x -> p x
+from-value-callback = (f) ->
+	_res = null
+	args = Array.prototype.slice.call(arguments, 1) ++ [->
+		_res it
+	]
+	new Promise (res, rej) ->
+		_res := res
+		try
+			f.apply this, args
+		catch ex
+			rej ex
+	
+
+# ### from-error-value-callback
+# Make a promise object from a callback with the signature of `(error, result) -> void`, like `fs.stat`
+# > CB x -> p x
+from-error-value-callback = (f) ->
+	_res = null
+	_rej = null
+	args = Array.prototype.slice.call(arguments, 1) ++ [(error, result) ->
+		return _rej error if !!error
+		_res result
+	]
+	new Promise (res, rej) ->
+		_res := res
+		_rej := rej
+		try
+			f.apply this, args
+		catch ex
+			rej ex
 
 
 # exports
@@ -378,4 +414,6 @@ exports <<< {
 	waterfall
 
 	to-callback
+	from-value-callback
+	from-error-value-callback
 }

@@ -227,7 +227,7 @@ in parallel, if it is a list of normal promise instances.
 
 
 ### parallel-limited-apply-each
-> parallel-limited-apply-each :: x -> [x -> CB y] -> CB [y]
+> parallel-limited-apply-each :: x -> [x -> p y] -> p [y]
 
 
 
