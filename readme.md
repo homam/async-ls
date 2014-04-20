@@ -36,7 +36,7 @@ Map a normal function over a promise.
 ### bindP
 Sequentially compose two promises, passing the value produced
 by the first as an argument to the second.
-> bindP :: p x -> (x -> p y) -> p y
+	bindP :: p x -> (x -> p y) -> p y
 
 
 
@@ -139,7 +139,6 @@ Private utility, an abstraction for `parallel-any` and `parallel-find`.
 #### serial-find-any
 Private utility, it is an abstraction of `serial-find` and `serial-any`.
 > serial-find-any :: ((x, Boolean) -> [Boolean, _]) -> (x -> p Boolean) -> [x] -> p [Boolean, x]
->
 > serial-find-any :: ((x, [Boolean, x]) -> [Boolean, x]) -> (x -> p Boolean) -> [x] -> p [Boolean, x]
 
 
@@ -259,4 +258,17 @@ using that function.
 
 
 ### to-callback
+Convert the promise object to a callback with the signature of `(error, result) -> void`
 > p x -> CB x
+
+
+
+### from-value-callback
+Make a promise object from a callback with the signature of `(result) -> void`, like `fs.exist`
+> Cb x -> p x
+
+
+
+### from-error-value-callback
+Make a promise object from a callback with the signature of `(error, result) -> void`, like `fs.stat`
+> CB x -> p x
