@@ -29,7 +29,7 @@ ffmapP = flip fmapP
 # ### bindP
 # Sequentially compose two promises, passing the value produced
 # by the first as an argument to the second.
-# 	bindP :: p x -> (x -> p y) -> p y
+# > bindP :: p x -> (x -> p y) -> p y
 bindP = (f, g) -->
 	f.then (fx) ->
 		g fx
@@ -147,10 +147,9 @@ parallel-limited-filter = limit serial-map, parallel-filter, concat
 # Private utility, sum two `m [Boolean, x]`, by performing logical disjunction on the first item in the tuples.
 # > mplus-promise-boolean-object :: m [Boolean, x] -> m [Boolean, x] -> m [Boolean, x]
 mplus-promise-boolean-object = (pa, pb) -->
-	new Promise (success, error) ->
-		pa |> fbindP ([b, o]) ->
-			| b => success [b, o]
-			| otherwise => pb `bindP` success
+	pa |> fbindP ([b, o]) ->
+		| b => pa
+		| otherwise => pb
 
 
 # #### msum-promise-boolean-object
@@ -163,7 +162,7 @@ msum-promise-boolean-object = (mxs) -> foldr mplus-promise-boolean-object, (retu
 # Private utility, an abstraction for `parallel-any` and `parallel-find`.
 # > parallel-find-any :: (x -> Boolean) -> [x] -> [[Boolean, x]]
 parallel-find-any = (f, xs) --> 
-	map ((x) -> (f x) `ffmapP` (b) -> [b,x] ), xs 
+	map ((x) -> (f x) `ffmapP` (b) -> [b,x]), xs 
 		|> msum-promise-boolean-object
 
 

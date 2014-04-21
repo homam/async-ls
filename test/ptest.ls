@@ -87,6 +87,23 @@ p-is-error-in-time = (done, expected-time, p) -->
 			done!
 	p
 
+p-is-error-in-time-and-more = (done, expected-time, more, p) -->
+	ts = new Date!
+	p.then -> 
+		done new Error "Expected Error, but got #it"
+	p.catch ->
+		time = new Date! - ts
+		whitin-time = (expected-time - 20) < time < (expected-time + 20)
+		if not whitin-time
+			done new Error "Expected time = #{expected-time}, actual time = #{time}"
+		else
+			try 
+				more!
+				done!
+			catch error
+				done error
+	p
+
 p-time = (done, expected-time, p) -->
 	ts = new Date!
 	p.then ->
@@ -192,6 +209,15 @@ more-than-five = (x) ->
 			res x>5
 		, 20
 
+more-than-five-with-error = (error-at, x) -->
+	new Promise (res, rej) ->
+		setTimeout ->
+			if x == error-at
+				rej "Error at #x"
+			else
+				res x>5
+		, 20
+
 is-five = (x) ->
 	new Promise (res, rej) ->
 		setTimeout ->
@@ -215,6 +241,14 @@ describe 'find', ->
 		_it 'on [1 to 10] should be 5 in 20 milliseconds', (done) ->
 			parallel-find is-five, [1 to 10] |> p-equal-in-time done, 5, 20
 
+		_it 'on [1 to 10] should be rejected', (done) ->
+			count = 0
+			more-than-five-with-error-c = (...) ->
+				count := ++count
+				(more-than-five-with-error 4) ...
+
+			parallel-find more-than-five-with-error-c, [1 to 10] |> p-is-error-in-time-and-more done, 20, (-> assert.equal 10, count)
+
 	describe 'serial-find', ->
 
 		_it 'on [] should be null', (done) ->
@@ -235,6 +269,14 @@ describe 'find', ->
 				more-than-five ...
 
 			serial-find more-than-five-c, [1 to 10] |> p-deep-equal-in-time-and-more done, 6, 120, (-> assert.equal 6, count)
+
+		_it 'on [1 to 10] should be rejected', (done) ->
+			count = 0
+			more-than-five-with-error-c = (...) ->
+				count := ++count
+				(more-than-five-with-error 4) ...
+
+			serial-find more-than-five-with-error-c, [1 to 10] |> p-is-error-in-time-and-more done, 80, (-> assert.equal 4, count)
 
 	describe 'parallel-limited-find', ->
 
