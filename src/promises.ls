@@ -364,6 +364,15 @@ from-error-value-callback = (f) ->
 			rej ex
 
 
+# ### from-named-callbacks
+# Make a promise object from `obj`.
+# > (o -> Cb x) -> (o -> Cb error) -> obj -> p x
+from-named-callbacks = (success-selector, error-selector, obj) ->
+	new Promise (res, rej) ->
+		success-selector(obj) res
+		error-selector(obj) rej
+
+
 # exports
 exports = exports || this
 exports <<< {
