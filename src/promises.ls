@@ -298,7 +298,7 @@ subsets-of-size = ([x, ...xs]:set, k) ->
 # using that function. 
 # > parallel-sort-with :: (a -> a -> p i) -> [a] -> p [a]
 parallel-sort-with = (f, xs) -->
-	compareP = ([[a,ia],[b, ib]]) -->
+	compareP = ([[a, ia], [b, ib]]) -->
 		(f a, b)
 			|> fbindP ((c) -> [ia, ib, c])
 
@@ -308,8 +308,10 @@ parallel-sort-with = (f, xs) -->
 		|> fbindP parallel-map compareP
 		|> fmapP (cs) -> 
 			compare = ([a,ia],[b,ib]) ->
-				[_,_,c] = find (([x,y,_]) -> x == ia and y == ib), cs
-				c
+				[_,_,c]:tuple? = find (([x,y,_]) -> x == ia and y == ib), cs
+				return c if !!tuple
+				[_,_,c1] = find (([x,y,_]) -> y == ia and x == ib), cs
+				-1 * c1
 			ilist.concat!.sort compare .map (.0)
 
 

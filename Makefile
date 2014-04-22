@@ -22,6 +22,9 @@ async-browser.js: $(LIB) browser
 	{ $(BROWSERIFY) -r ./lib/index.js:async-ls -u ./node_modules/prelude-ls/lib/index.js -u ./node_modules/promise/index.js ; } > browser/async-browser.js
 
 
+test-browser.js: $(LIB) browser
+	{ $(BROWSERIFY) -r ./test/ptest.js:test-promises-ls -u ./node_modules/prelude-ls/lib/index.js ; } > junk/browser/test-browser.js
+
 
 lib:
 	mkdir lib/

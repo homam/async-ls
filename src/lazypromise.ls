@@ -1,3 +1,4 @@
+require \setimmediate
 Promise = global.Promise or require \promise
 inherit = require \inherits
 {Obj} = require \prelude-ls
