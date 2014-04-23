@@ -18,6 +18,10 @@ promises-browser-with-promise.js: $(LIB) browser
 	{ $(BROWSERIFY) -r ./lib/promises.js:promises-ls -u ./node_modules/prelude-ls/lib/index.js ; } > browser/promises-browser.js
 
 
+promises-browser-all.js: $(LIB) browser
+	{ $(BROWSERIFY) -r ./lib/promises.js:promises-ls ; } > browser/promises-browser-all.js
+
+
 async-browser.js: $(LIB) browser
 	{ $(BROWSERIFY) -r ./lib/index.js:async-ls -u ./node_modules/prelude-ls/lib/index.js -u ./node_modules/promise/index.js ; } > browser/async-browser.js
 
