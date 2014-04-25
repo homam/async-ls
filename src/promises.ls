@@ -4,6 +4,13 @@
 	sort-by, find, flatten
 } = require \prelude-ls
 Promise = require \./lazypromise
+{
+	monadize
+	filterM
+	foldM
+	sequenceM
+} = require \./monads
+
 
 
 # ## Compositions
@@ -21,7 +28,7 @@ fmapP = (f, g) -->
 	g.then -> f it
 
 # ### ffmapP
-# `fmapA` with its arguments flipped.
+# `fmapP` with its arguments flipped.
 # > ffmapP :: p x -> (x -> y) -> p y
 ffmapP = flip fmapP
 
@@ -40,28 +47,20 @@ bindP = (f, g) -->
 # > fbindP :: (x -> p y) -> p x -> p y
 fbindP = flip bindP
 
+promise-monad = monadize returnP, fmapP, bindP
+
 
 # ### filterP
 # Filter the list by applying the promise predicate function to 
 # each of its element one-by-one in serial order.
 # > filterP :: (x -> p Boolean) -> [x] -> p [x]
-filterP = (f, [x,...xs]:list) -->
-	return returnP [] if empty list
-	(f x) 
-		|> fbindP (fx) -> 
-			(filterP f, xs) 
-			|> fbindP (ys) ->
-				returnP if fx then [x] ++ ys else ys
-
+filterP = filterM promise-monad
 
 # ### foldP
 # The `foldP` function is analogous to `foldl`, except that its result is
 # encapsulated in a promise.
 # > foldP :: (a -> b -> p a) -> a -> [b] -> p a
-foldP = (f, a, [x,...xs]:list) ->
-	| empty list => returnP a
-	| otherwise => (f a, x) `bindP` ((fax) -> foldP f, fax, xs)
-
+foldP = foldM promise-monad
 
 # ### sequenceP
 # Run its input (an array of promises) in parallel, 
@@ -71,14 +70,7 @@ foldP = (f, a, [x,...xs]:list) ->
 # The returned promise immidiately gets rejected,
 # if any of the promises in the input list fail,
 # > sequenceP :: [p x] -> p [x]
-sequenceP = (mxs) ->
-	k = (m, mp) -->
-		m |> fbindP (x) ->
-			mp |> fbindP (xs) ->
-				returnP ([x] ++ xs)
-
-	foldr k, (returnP []), mxs
-
+sequenceP = sequenceM promise-monad
 
 # ## Lists
 
@@ -321,6 +313,29 @@ waterfall = (x, fs) -->
 	foldP ((a, y) -> y a), x, fs
 
 
+# ### transform-promise-either
+# > transform-promise-either :: Promise x -> (x -> Either y) -> Promise y
+transform-promise-either = (f, g) -->
+	new Promise (res, rej) ->
+		f.then (fx) ->
+			[errg, gfx] = g fx
+			if !!errg
+				rej new Error errg
+			else
+				res gfx
+		f.catch (err) ->
+			rej err
+		
+
+# ### transform-either-promise
+# > transform-either-promise :: Either x -> (x -> Promise y) -> Promise y
+transform-either-promise = ([errf, fx], g) ->
+	new Promise (res, rej) ->
+		if !!errf
+			rej new Error errf
+		else
+			res g fx
+
 # ### to-callback
 # Convert the promise object to a callback with the signature of `(error, result) -> void`
 # > p x -> CB x
@@ -395,6 +410,8 @@ exports <<< {
 	filterP
 	sequenceP
 
+	promise-monad
+
 	parallel-sequence
 	serial-sequence
 	parallel-limited-sequence
@@ -428,6 +445,9 @@ exports <<< {
 	parallel-limited-apply-each
 
 	waterfall
+
+	transform-either-promise
+	transform-promise-either
 
 	to-callback
 	from-value-callback
