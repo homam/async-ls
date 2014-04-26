@@ -3,7 +3,7 @@
 This library provides powerful higher-order functions and other utilities
 for working with asynchronous functions with callbacks or ES6 promises.
 
-The callback utility functions are in 
+Callback utility functions are in 
 
 	{callbacks} = require \async-ls
 	
@@ -15,7 +15,7 @@ There's also a monad library accessible by:
 
     {monads} = require \async-ls
 	
-The callback and promise functions are similar in their input arguments and their result. Callback functions return a callback function with the signature of `(error, result) -> void` and promise functions return a `Promise` object.
+Callback and promise functions are similar in their input arguments and their result. Callback functions return a callback function with the signature of `(error, result) -> void` and promise functions return a `Promise` object.
 
 To get the individual functions use LiveScript pattern matching syntax:
 
