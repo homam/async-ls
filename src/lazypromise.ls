@@ -1,8 +1,12 @@
+# # Lazy Promise
+
+# ## Imports
 require \setimmediate
 Promise = global.Promise or require \promise
 inherit = require \inherits
 {Obj} = require \prelude-ls
 
+# ## LazyPromise type
 # `LazyPromise` only starts getting evaluated after `then` is called.
 LazyPromise = (fn) !->
 	return new LazyPromise fn if not this instanceof LazyPromise

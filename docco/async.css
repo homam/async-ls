@@ -51,9 +51,12 @@ body {
 
 header {
   text-align: center;
+width: 760px;
+margin: 0 auto;
 }
 header h1 {
   margin-top: 1em;
+  margin-bottom: 1em;
 }
 header ol {
   margin: 0;
@@ -95,14 +98,15 @@ b, strong {
 }
 
 blockquote {
-  border-left: 5px solid #ccc;
   margin-left: 0;
-  padding: 1px 0 1px 1em;
+  padding: 0.2ex 0 1ex 0;
+  margin: 0 0 1ex 0;
 }
+
   .page blockquote p {
     font-family: Menlo, Consolas, Monaco, monospace;
     font-size: 14px; line-height: 19px;
-    color: #999;
+    color: maroon;
     margin: 10px 0 0;
     white-space: pre-wrap;
   }
@@ -110,20 +114,23 @@ blockquote {
 pre, tt, code {
   font-family: Menlo, Consolas, Monaco, monospace;
   font-size: 12px;
+  padding: 0 5px 0 5px;
+  display: inline-block;
+  color: #555;
+  background: #fcfcfc;
+}
+
+pre {
   display: inline-block;
   border: 1px solid #EAEAEA;
-  background: #f8f8f8;
   color: #555;
-  padding: 0 5px;
   line-height: 20px;
+  margin: 0;
+  width: 620px;
+  padding: 10px 15px;
+  overflow-x: auto;
+  text-align: left;
 }
-  .page pre {
-    margin: 0;
-    width: 620px;
-    padding: 10px 15px;
-    background: #fcfcfc;
-    overflow-x: auto;
-  }
     .page pre code {
       border: 0;
       padding: 0;
@@ -171,14 +178,10 @@ ul.sections {
 }
 
 .toc {
-  max-height: 0;
-  overflow: hidden;
-  text-align: center;
-  font-size: 13px;
-  line-height: 20px;
-  -moz-transition: max-height 1s;
-  -webkit-transition: max-height 1s;
-  transition: max-height 1s;
+  text-align: left;
+  width: 640px;
+  padding: 0 30px;
+  margin: 0 30px;
 }
   .header:hover .toc {
     max-height: 500px;
@@ -187,13 +190,15 @@ ul.sections {
     margin-top: 20px;
   }
   .toc ol {
-    margin: 0 0 20px 0;
+    margin: 0;
     display: inline-block;
     text-align: left;
-    list-style-type: upper-roman;
+    list-style-type: none;
   }
     .toc li {
       font-family: 'novecento-bold';
+      float: left;
+      margin-right: 1em;
     }
       .toc li a {
         font-family: 'aller-light';

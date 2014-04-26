@@ -20,7 +20,8 @@
   <% } %>
 
   <% if (sources.length > 1) { %>
-      <h3>Table of Contents</h3>
+    <div class="toc">
+      <h3>Files</h3>
       <ol>
         <% for (var i=0, l = sources.length; i < l; i++) { %>
           <% var source = sources[i]; %>
@@ -31,6 +32,7 @@
           </li>
         <% } %>
       </ol>
+    </div>
   <% } %>
 </header>
   <div class="container">

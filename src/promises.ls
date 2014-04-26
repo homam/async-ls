@@ -1,4 +1,6 @@
 # # Promises
+
+# ## Imports
 {
 	id, map, zip, empty, flip, foldr, filter,
 	concat, group-by, div, obj-to-pairs, last,
@@ -403,7 +405,7 @@ from-error-value-callback = (self, f) ->
 
 # ### from-named-callbacks
 # Make a promise object from `obj`.
-# > (o -> Cb x) -> (o -> Cb error) -> obj -> p x
+# > String -> String -> obj -> Promise x
 from-named-callbacks = (success-name, error-name, obj) ->
 	_res = null
 	_rej = null

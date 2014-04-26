@@ -1,7 +1,7 @@
 {
   "name": "async-ls",
   "version": "0.0.1",
-  "description": "Higher order functions, compositions and common operations for asynchronous programming in LiveScript.",
+  "description": "Higher order functions, compositions and common operations for asynchronous programming in LiveScript using Promises or callbacks.",
   "main": "lib/",
   "files": [
     "lib/",
