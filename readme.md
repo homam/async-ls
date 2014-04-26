@@ -34,7 +34,7 @@ To build:
     
 Build for browsers (using Browserify):
 
-    async-browser.js
+    make async-browser.js
     
 Build for browsers (callbacks library only):
 
