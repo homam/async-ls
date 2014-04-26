@@ -1,40 +1,40 @@
 {
-  "name": "async.ls",
-  "version": "0.0.0",
+  "name": "async-ls",
+  "version": "0.0.1",
   "description": "Higher order functions, compositions and common operations for asynchronous programming in LiveScript.",
   "main": "lib/",
-  "directories": {
-    "test": "test"
-  },
+  "files": [
+    "lib/",
+    "readme.md"
+  ],
   "dependencies": {
     "prelude-ls": "~1.1.0",
-    "LiveScript": "~1.2.0",
-    "browserify": "*",
     "promise": "~4.0.0",
     "inherits": "~2.0.1",
     "setimmediate": "~1.0.1"
   },
   "devDependencies": {
-    "mocha": "~1.18.2"
+    "mocha": "~1.18.2",
+    "LiveScript": "~1.2.0",
+    "browserify": "*"
   },
   "scripts": {
     "test": "./test.sh"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/homam/async.ls.git"
+    "url": "https://github.com/homam/async-ls.git"
   },
   "keywords": [
     "async",
-    "fmap",
-    "monads",
-    "bind",
-    "either"
+    "parallel",
+    "monad",
+    "promise"
   ],
-  "author": "Homam Hosseini",
+  "author": "Homam Hosseini (http://twitter.com/@homam)",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/homam/async.ls/issues"
   },
-  "homepage": "https://github.com/homam/async.ls"
+  "homepage": "https://github.com/homam/async-ls"
 }

@@ -1,3 +1,4 @@
+# # Promises
 {
 	id, map, zip, empty, flip, foldr, filter,
 	concat, group-by, div, obj-to-pairs, last,
@@ -56,21 +57,24 @@ promise-monad = monadize returnP, fmapP, bindP
 # > filterP :: (x -> p Boolean) -> [x] -> p [x]
 filterP = filterM promise-monad
 
+
 # ### foldP
 # The `foldP` function is analogous to `foldl`, except that its result is
 # encapsulated in a promise.
 # > foldP :: (a -> b -> p a) -> a -> [b] -> p a
 foldP = foldM promise-monad
 
+
 # ### sequenceP
-# Run its input (an array of promises) in parallel, 
-# without waiting until the previous promise to fulfill,
-# and return a the results encapsulated in a promise.
+# Run its input (an array of `Promise` s) in parallel
+# (without waiting for the previous promise to fulfill),
+# and return the results encapsulated in a promise.
 # 
 # The returned promise immidiately gets rejected,
-# if any of the promises in the input list fail,
+# if any of the promises in the input list fail.
 # > sequenceP :: [p x] -> p [x]
 sequenceP = sequenceM promise-monad
+
 
 # ## Lists
 
@@ -233,9 +237,10 @@ parallel-sequence = sequenceP
 # ### serial-sequence
 # The serial version of `sequenceP`.
 #
-# `serial-sequence` requires that its argument be a list of
-# `LazyPromise` instances. This function run the input list 
-# in parallel, if it is a list of normal promise instances.
+# To run the list one by one in a serial order, its items
+# must be instances of `LazyPromise` type.
+# This function runs the list in parallel, if it is a list 
+# of normal `Promise` s.
 # > serial-sequence :: [p x] -> p [x]
 serial-sequence = (list) ->
 	foldP ((a, x) -> x `ffmapP` (-> a ++ [it])), [], list
@@ -314,6 +319,8 @@ waterfall = (x, fs) -->
 
 
 # ### transform-promise-either
+# Bind a promise monad to an either monad. The result is a promise monad. 
+# Since we can think of promise as a superset of either in the way it handles errors.
 # > transform-promise-either :: Promise x -> (x -> Either y) -> Promise y
 transform-promise-either = (f, g) -->
 	new Promise (res, rej) ->
@@ -325,9 +332,15 @@ transform-promise-either = (f, g) -->
 				res gfx
 		f.catch (err) ->
 			rej err
-		
+
+# ### ftransform-promise-either
+# `transform-promise-either` with its arguments flipped.
+# > ftransform-promise-either :: (x -> Either y) -> Promise x -> Promise y
+ftransform-promise-either = flip transform-promise-either
+
 
 # ### transform-either-promise
+# Bind an either monad to a promise monad.
 # > transform-either-promise :: Either x -> (x -> Promise y) -> Promise y
 transform-either-promise = ([errf, fx], g) ->
 	new Promise (res, rej) ->
@@ -335,6 +348,12 @@ transform-either-promise = ([errf, fx], g) ->
 			rej new Error errf
 		else
 			res g fx
+
+# ### ftransform-either-promise
+# `transform-either-promise` with its arguments flipped.
+# > ftransform-either-promise :: (x -> Promise y) -> Either x -> Promise y
+ftransform-either-promise = flip transform-either-promise
+
 
 # ### to-callback
 # Convert the promise object to a callback with the signature of `(error, result) -> void`
@@ -349,37 +368,38 @@ to-callback = (p, callback) !-->
 # ### from-value-callback
 # Make a promise object from a callback with the signature of `(result) -> void`, like `fs.exist`
 # > Cb x -> p x
-from-value-callback = (f) ->
-	_res = null
-	args = Array.prototype.slice.call(arguments, 1) ++ [->
-		_res it
-	]
-	new Promise (res, rej) ->
-		_res := res
-		try
-			f.apply this, args
-		catch ex
-			rej ex
+from-value-callback = (self, f) ->
+	->
+		_res = null
+		args = Array.prototype.slice.call(arguments, 0) ++ [->
+			_res it
+		]
+		new Promise (res, rej) ->
+			_res := res
+			try
+				f.apply self, args
+			catch ex
+				rej ex
 	
 
 # ### from-error-value-callback
 # Make a promise object from a callback with the signature of `(error, result) -> void`, like `fs.stat`
 # > CB x -> p x
-from-error-value-callback = (f) ->
-	_res = null
-	_rej = null
-	args = Array.prototype.slice.call(arguments, 1) ++ [(error, result) ->
-		return _rej error if !!error
-		_res result
-	]
-	new Promise (res, rej) ->
-		_res := res
-		_rej := rej
-		try
-			f.apply this, args
-		catch ex
-			rej ex
-
+from-error-value-callback = (self, f) ->
+	->
+		_res = null
+		_rej = null
+		args = Array.prototype.slice.call(arguments, 0) ++ [(error, result) ->
+			return _rej error if !!error
+			_res result
+		]
+		new Promise (res, rej) ->
+			_res := res
+			_rej := rej
+			try
+				f.apply self, args
+			catch ex
+				rej ex
 
 # ### from-named-callbacks
 # Make a promise object from `obj`.
@@ -397,7 +417,7 @@ from-named-callbacks = (success-name, error-name, obj) ->
 
 
 # exports
-exports = exports || this
+exports = exports or this
 exports <<< {
 	LazyPromise: Promise
 
@@ -447,7 +467,9 @@ exports <<< {
 	waterfall
 
 	transform-either-promise
+	ftransform-either-promise
 	transform-promise-either
+	ftransform-promise-either
 
 	to-callback
 	from-value-callback

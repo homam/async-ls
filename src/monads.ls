@@ -1,18 +1,24 @@
+# # Monads
 {
 	id, map, zip, empty, flip, fold, foldr, filter,
 	concat, group-by, div, obj-to-pairs, last,
 	sort-by, find, flatten
 } = require \prelude-ls
-Promise = require \./lazypromise
 
+# ### monadize
+# Monads work best in statically typed languages. To make monadic functions
+# work in LiveScript, we need to pass the type of the monad to many of the monadic opertions.
+# `monadize` encapsulates the monad's type: `return` aka `pure`, `fmap` and `bind` functions.
+# > monadize :: (a -> m a) ->
+# > 			((a -> b) -> m a -> m b) ->
+# > 			(m a -> (a -> m b) -> m b) ->
+# > 			Monad
 monadize = (pure, fmap, bind) ->
-	monad = 
-		pure: pure
-		fmap: fmap
-		bind: bind
-		ffmap: flip fmap
-		fbind: flip bind
-	monad
+	pure: pure
+	fmap: fmap
+	bind: bind
+	ffmap: flip fmap
+	fbind: flip bind
 
 
 # ### kcompM
@@ -144,7 +150,7 @@ tell-writer = (mappend, [x, xs], s) -->
 writer-monad = (monadize pure-either, fmap-writer, bind-writer) <<< tell: tell-writer
 
 
-
+# exports
 exports = exports or this
 exports <<< {
 	monadize

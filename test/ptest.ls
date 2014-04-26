@@ -39,9 +39,9 @@
 	parallel-limited-apply-each
 
 	waterfall
-} = require \./../build/promises
+} = require \./../lib/promises
 {each} = require \prelude-ls
-Promise = require \./../build/lazypromise
+Promise = require \./../lib/lazypromise
 assert = require 'assert'
 _it = it
 

@@ -1,5 +1,5 @@
 {odd} = require \prelude-ls
-{returnL, bindL, ffmapA, returnA, bindA, foldA, filterA}  = require \./../build/compositions
+{returnL, bindL, ffmapA, returnA, bindA, foldA, filterA}  = require \./../lib/compositions
 {
 	parallel-map-limited, serial-map, parallel-map, 
 	parallel-filter, serial-filter, parallel-limited-filter,
@@ -10,7 +10,7 @@
 	parallel-sequence, serial-sequence,
 	parallel-apply-each, serial-apply-each, parallel-limited-apply-each,
 	waterfall
-} = require \./../build/lists  
+} = require \./../lib/lists  
 
 assert = require 'assert'
 _it = it
