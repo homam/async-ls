@@ -726,8 +726,8 @@ Once the tasks have completed, the results are passed to the final callback as a
 	waterfall :: x -> (x -> CB x) -> CB x
 
 
-### series-fold
+### serial-fold
 
-	series-fold :: (a -> b -> m a) -> a -> [b] -> m a
+	serial-fold :: (a -> b -> m a) -> a -> [b] -> m a
 
 

@@ -350,10 +350,10 @@ waterfall = (x, fs, callback) -->
 	foldA g, x, fs <| callback
 
 
-# ### series-fold
+# ### serial-fold
 
-# 	series-fold :: (a -> b -> m a) -> a -> [b] -> m a
-series-fold = (..., callback) -> foldA ... <| callback
+# 	serial-fold :: (a -> b -> m a) -> a -> [b] -> m a
+serial-fold = (..., callback) -> foldA ... <| callback
 
 
 
