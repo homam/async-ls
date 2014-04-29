@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Async-ls : Higher order functions, compositions and common operations for asynchronous programming in LiveScript." />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Async-ls</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/homam/async-ls">View on GitHub</a>
+
+          <h1 id="project_title">Async-ls</h1>
+          <h2 id="project_tagline">Higher order functions, compositions and common operations for asynchronous programming in LiveScript.</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/homam/async-ls/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/homam/async-ls/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a name="async-ls" class="anchor" href="#async-ls"><span class="octicon octicon-link"></span></a>async-ls</h1>
+
+<p>This library provides powerful higher-order functions and other utilities
+for working with asynchronous functions with callbacks or ES6 promises.</p>
+
+<p>Callback utility functions are in </p>
+
+<pre><code>{callbacks} = require \async-ls
+</code></pre>
+
+<p>and promise based functions are in </p>
+
+<pre><code>{promises} = require \async-ls
+</code></pre>
+
+<p>There's also a monad library accessible by:</p>
+
+<pre><code>{monads} = require \async-ls
+</code></pre>
+
+<p>Callback and promise functions are similar in their input arguments and their result. Callback functions return a callback function with the signature of <code>(error, result) -&gt; void</code> and promise functions return a <code>Promise</code> object.</p>
+
+<p>To get the individual functions use LiveScript pattern matching syntax:</p>
+
+<pre><code>{
+    promises: {
+        LazyPromise, parallel-map, parallel-limited-filter
+    },
+    monads: {
+        filterM, liftM
+    }
+} = require \async-ls
+</code></pre>
+
+<p>To build:</p>
+
+<pre><code>make build
+</code></pre>
+
+<p>Build for browsers (using Browserify):</p>
+
+<pre><code>make async-browser.js
+</code></pre>
+
+<p>Build for browsers (callbacks library only):</p>
+
+<pre><code>make callbacks-browser.js 
+</code></pre>
+
+<p>Build for browsers (promises library only):</p>
+
+<pre><code>make promises-browser.js
+</code></pre>
+
+<p>To test:</p>
+
+<pre><code>./test.sh
+</code></pre>
+
+<h1>
+<a name="monads" class="anchor" href="#monads"><span class="octicon octicon-link"></span></a>Monads</h1>
+
+<pre><code>{monads} = require \async-ls
+</code></pre>
+
+<h3>
+<a name="monadize" class="anchor" href="#monadize"><span class="octicon octicon-link"></span></a>monadize</h3>
+
+<p>Monads work best in statically typed languages. To make monadic functions
+work in LiveScript, we need to pass the type of the monad to many of the monadic operations.
+<code>monadize</code> encapsulates the monad's type: <code>return</code> aka <code>pure</code>, <code>fmap</code> and <code>bind</code> functions.</p>
+
+<pre><code>monadize :: 
+    (a -&gt; m a) -&gt;                   # pure
+    ((a -&gt; b) -&gt; m a -&gt; m b) -&gt;     # fmap
+    (m a -&gt; (a -&gt; m b) -&gt; m b) -&gt;   # bind
+    Monad
+</code></pre>
+
+<h3>
+<a name="kcompm" class="anchor" href="#kcompm"><span class="octicon octicon-link"></span></a>kcompM</h3>
+
+<p>Left-to-right Kleisli composition of monads.</p>
+
+<pre><code>kcompM :: (Monad m) =&gt; (a -&gt; m b) -&gt; (b -&gt; m c) -&gt; (a -&gt; m c)
+</code></pre>
+
+<h3>
+<a name="joinm" class="anchor" href="#joinm"><span class="octicon octicon-link"></span></a>joinM</h3>
+
+<p>Remove one level of monadic structure, projecting its bound argument into the outer level.</p>
+
+<pre><code>(Monad m) =&gt; m m x -&gt; m x
+</code></pre>
+
+<h3>
+<a name="filterm" class="anchor" href="#filterm"><span class="octicon octicon-link"></span></a>filterM</h3>
+
+<p>Filter the list by applying the predicate function to 
+each of its element one-by-one in serial order.</p>
+
+<pre><code>filterM :: (Monad x) =&gt; (x -&gt; m Boolean) -&gt; [x] -&gt; m [x]
+</code></pre>
+
+<h3>
+<a name="foldm" class="anchor" href="#foldm"><span class="octicon octicon-link"></span></a>foldM</h3>
+
+<p>The <code>foldM</code> function is analogous to <code>foldl</code>, except that its result is
+encapsulated in a monad.</p>
+
+<pre><code>foldM :: (Monad a) =&gt; (a -&gt; b -&gt; m a) -&gt; a -&gt; [b] -&gt; m a
+</code></pre>
+
+<h3>
+<a name="sequencem" class="anchor" href="#sequencem"><span class="octicon octicon-link"></span></a>sequenceM</h3>
+
+<p>Evaluate each action in the sequence from left to right,
+and collect the results.</p>
+
+<pre><code>sequenceM :: (Monad x) =&gt; [m x] -&gt; m [x]
+</code></pre>
+
+<h3>
+<a name="mapm" class="anchor" href="#mapm"><span class="octicon octicon-link"></span></a>mapM</h3>
+
+<p>It is equivalent to <code>sequenceM . (map f)</code>.</p>
+
+<pre><code>(Monad m) =&gt; (x -&gt; m x) -&gt; [x] -&gt; m [x]
+</code></pre>
+
+<h3>
+<a name="liftm" class="anchor" href="#liftm"><span class="octicon octicon-link"></span></a>liftM</h3>
+
+<p>Promote a function to a monad.</p>
+
+<pre><code>liftM  :: (Monad m) =&gt; (a -&gt; r) -&gt; m a -&gt; m r
+</code></pre>
+
+<h3>
+<a name="liftm2" class="anchor" href="#liftm2"><span class="octicon octicon-link"></span></a>liftM2</h3>
+
+<p>Promote a function to a monad, scanning the monadic arguments from
+left to right.</p>
+
+<pre><code>liftM2 :: (Monad m) =&gt; (a1 -&gt; a2 -&gt; r) -&gt; m a1 -&gt; m a2 -&gt; m r
+</code></pre>
+
+<h3>
+<a name="ap" class="anchor" href="#ap"><span class="octicon octicon-link"></span></a>ap</h3>
+
+<p><code>monad.pureM f `ap` x1 `ap` ... `ap`</code> is equivalent to <code>(liftMn monad) f x1 x2 ... xn</code></p>
+
+<pre><code>ap :: (Monad m) =&gt; m (a -&gt; b) -&gt; m a -&gt; m b
+</code></pre>
+
+<h3>
+<a name="some-monad-instances" class="anchor" href="#some-monad-instances"><span class="octicon octicon-link"></span></a>Some Monad Instances:</h3>
+
+<pre><code>list-monad :: Monad     # []
+
+either-monad :: Monad   # [error, right]
+
+writer-monad :: Monad   # [value, monoid]
+</code></pre>
+
+<h1>
+<a name="promises" class="anchor" href="#promises"><span class="octicon octicon-link"></span></a>Promises</h1>
+
+<pre><code>{promises} = require \async-ls
+</code></pre>
+
+<h2>
+<a name="lazy-promise" class="anchor" href="#lazy-promise"><span class="octicon octicon-link"></span></a>Lazy Promise</h2>
+
+<p><code>LazyPromise</code> only starts getting evaluated after <code>then</code> is called.</p>
+
+<pre><code>LazyPromise : Promise
+</code></pre>
+
+<h2>
+<a name="compositions" class="anchor" href="#compositions"><span class="octicon octicon-link"></span></a>Compositions</h2>
+
+<pre><code>promise-monad :: Monad
+</code></pre>
+
+<h3>
+<a name="returnp" class="anchor" href="#returnp"><span class="octicon octicon-link"></span></a>returnP</h3>
+
+<p>Inject a value into a promise.</p>
+
+<pre><code>returnP :: x -&gt; Promise x
+</code></pre>
+
+<h3>
+<a name="fmapp" class="anchor" href="#fmapp"><span class="octicon octicon-link"></span></a>fmapP</h3>
+
+<p>Map a normal function over a promise.</p>
+
+<pre><code>fmapP :: (x -&gt; y) -&gt; Promise x -&gt; Promise y
+</code></pre>
+
+<h3>
+<a name="ffmapp" class="anchor" href="#ffmapp"><span class="octicon octicon-link"></span></a>ffmapP</h3>
+
+<p><code>fmapP</code> with its arguments flipped.</p>
+
+<pre><code>ffmapP :: Promise x -&gt; (x -&gt; y) -&gt; Promise y
+</code></pre>
+
+<h3>
+<a name="bindp" class="anchor" href="#bindp"><span class="octicon octicon-link"></span></a>bindP</h3>
+
+<p>Sequentially compose two promises, passing the value produced
+by the first as an argument to the second.</p>
+
+<pre><code>bindP :: Promise x -&gt; (x -&gt; Promise y) -&gt; Promise y
+</code></pre>
+
+<h3>
+<a name="fbindp" class="anchor" href="#fbindp"><span class="octicon octicon-link"></span></a>fbindP</h3>
+
+<p><code>bindP</code> with its arguments flipped.</p>
+
+<pre><code>fbindP :: (x -&gt; Promise y) -&gt; Promise x -&gt; Promise y
+</code></pre>
+
+<h3>
+<a name="filterp" class="anchor" href="#filterp"><span class="octicon octicon-link"></span></a>filterP</h3>
+
+<p>Filter the list by applying the promise predicate function to 
+each of its element one-by-one in serial order.</p>
+
+<pre><code>filterP :: (x -&gt; Promise Boolean) -&gt; [x] -&gt; Promise [x]
+</code></pre>
+
+<h3>
+<a name="foldp" class="anchor" href="#foldp"><span class="octicon octicon-link"></span></a>foldP</h3>
+
+<p>The <code>foldP</code> function is analogous to <code>foldl</code>, except that its result is
+encapsulated in a promise.</p>
+
+<pre><code>foldP :: (a -&gt; b -&gt; Promise a) -&gt; a -&gt; [b] -&gt; Promise a
+</code></pre>
+
+<h3>
+<a name="sequencep" class="anchor" href="#sequencep"><span class="octicon octicon-link"></span></a>sequenceP</h3>
+
+<p>Run its input (an array of <code>Promise</code> s) in parallel
+(without waiting for the previous promise to fulfill),
+and return the results encapsulated in a promise.</p>
+
+<p>The returned promise immidiately gets rejected,
+if any of the promises in the input list fail.</p>
+
+<pre><code>sequenceP :: [Promise x] -&gt; Promise [x]
+</code></pre>
+
+<h2>
+<a name="lists" class="anchor" href="#lists"><span class="octicon octicon-link"></span></a>Lists</h2>
+
+<h3>
+<a name="parallel-map" class="anchor" href="#parallel-map"><span class="octicon octicon-link"></span></a>parallel-map</h3>
+
+<pre><code>parallel-map :: (a -&gt; Promise b) -&gt; [a] -&gt; Promise [b]
+</code></pre>
+
+<h3>
+<a name="serial-map" class="anchor" href="#serial-map"><span class="octicon octicon-link"></span></a>serial-map</h3>
+
+<pre><code>serial-map :: (a -&gt; Promise b) -&gt; [a] -&gt; Promise [b]
+</code></pre>
+
+<h3>
+<a name="parallel-limited-map" class="anchor" href="#parallel-limited-map"><span class="octicon octicon-link"></span></a>parallel-limited-map</h3>
+
+<pre><code>parallel-limited-map :: Int -&gt; (x -&gt; Promise y) -&gt; [x] -&gt; Promise [y]
+</code></pre>
+
+<h3>
+<a name="parallel-filter" class="anchor" href="#parallel-filter"><span class="octicon octicon-link"></span></a>parallel-filter</h3>
+
+<pre><code>parallel-filter :: (x -&gt; m Boolean) -&gt; [x] -&gt; m [x]
+</code></pre>
+
+<h3>
+<a name="serial-filter" class="anchor" href="#serial-filter"><span class="octicon octicon-link"></span></a>serial-filter</h3>
+
+<p>Synonym for <code>filterP</code></p>
+
+<pre><code>serial-filter :: (x -&gt; Promise Boolean) -&gt; [x] -&gt; Promise [x]
+</code></pre>
+
+<h3>
+<a name="parallel-limited-filter" class="anchor" href="#parallel-limited-filter"><span class="octicon octicon-link"></span></a>parallel-limited-filter</h3>
+
+<pre><code>parallel-limited-filter :: Int -&gt; (x -&gt; Promise Boolean) -&gt; [x] -&gt; Promise x
+</code></pre>
+
+<h3>
+<a name="parallel-any" class="anchor" href="#parallel-any"><span class="octicon octicon-link"></span></a>parallel-any</h3>
+
+<p>Run the boolean predicate (that is encapsulated in a promise) on the list in parallel.
+The returned promise fulfills as soon as a matching item is found with <code>true</code>,
+otherwise <code>false</code> if no match was found.</p>
+
+<pre><code>parallel-any :: (x -&gt; Promise Boolean) -&gt; [x] -&gt; Promise Boolean
+</code></pre>
+
+<h3>
+<a name="serial-any" class="anchor" href="#serial-any"><span class="octicon octicon-link"></span></a>serial-any</h3>
+
+<pre><code>serial-any :: (x -&gt; m Boolean) -&gt; [x] -&gt; m Boolean
+</code></pre>
+
+<h3>
+<a name="parallel-limited-any" class="anchor" href="#parallel-limited-any"><span class="octicon octicon-link"></span></a>parallel-limited-any</h3>
+
+<pre><code>parallel-limited-any :: Int -&gt; (x -&gt; Promise Boolean) -&gt; [x] -&gt; Promise Boolean
+</code></pre>
+
+<h3>
+<a name="parallel-all" class="anchor" href="#parallel-all"><span class="octicon octicon-link"></span></a>parallel-all</h3>
+
+<pre><code>parallel-all :: (x -&gt; Promise Boolean) -&gt; [x] -&gt; Promise Boolean
+</code></pre>
+
+<h3>
+<a name="serial-all" class="anchor" href="#serial-all"><span class="octicon octicon-link"></span></a>serial-all</h3>
+
+<pre><code>serial-all :: (x -&gt; Promise Boolean) -&gt; [x] -&gt; Promise Boolean
+</code></pre>
+
+<h3>
+<a name="parallel-limited-all" class="anchor" href="#parallel-limited-all"><span class="octicon octicon-link"></span></a>parallel-limited-all</h3>
+
+<pre><code>parallel-limited-all :: Int -&gt; (x -&gt; Promise Boolean) -&gt; [x] -&gt; Promise Boolean
+</code></pre>
+
+<h3>
+<a name="parallel-find" class="anchor" href="#parallel-find"><span class="octicon octicon-link"></span></a>parallel-find</h3>
+
+<p>Run the boolean predicate (that is encapsulated in a promise) on the list in parallel.
+The returned promisefulfills as soon as a matching item is found with the
+matching value, otherwise with <code>null</code> if no match was found. </p>
+
+<pre><code>parallel-find :: (x -&gt; Promise Boolean) -&gt; [x] -&gt; m 
+</code></pre>
+
+<h3>
+<a name="serial-find" class="anchor" href="#serial-find"><span class="octicon octicon-link"></span></a>serial-find</h3>
+
+<pre><code>serial-find :: (x -&gt; Promise Boolean) -&gt; [x] -&gt; m x
+</code></pre>
+
+<h3>
+<a name="parallel-limited-find" class="anchor" href="#parallel-limited-find"><span class="octicon octicon-link"></span></a>parallel-limited-find</h3>
+
+<pre><code>parallel-limited-find :: Int -&gt; (x -&gt; Promise Boolean) -&gt; [x] -&gt; Promise x
+</code></pre>
+
+<h3>
+<a name="parallel-sequence" class="anchor" href="#parallel-sequence"><span class="octicon octicon-link"></span></a>parallel-sequence</h3>
+
+<p>Synonym for <code>sequenceP</code></p>
+
+<pre><code>parallel-sequence :: [Promise x] -&gt; Promise [x]
+</code></pre>
+
+<h3>
+<a name="serial-sequence" class="anchor" href="#serial-sequence"><span class="octicon octicon-link"></span></a>serial-sequence</h3>
+
+<p>The serial version of <code>sequenceP</code>.</p>
+
+<p>To run the list one by one in a serial order, its items
+must be instances of <code>LazyPromise</code> type.
+This function runs the list in parallel, if it is a list 
+of normal <code>Promise</code> s.</p>
+
+<pre><code>serial-sequence :: [LazyPromise x] -&gt; LazyPromise [x]
+</code></pre>
+
+<h3>
+<a name="parallel-limited-sequence" class="anchor" href="#parallel-limited-sequence"><span class="octicon octicon-link"></span></a>parallel-limited-sequence</h3>
+
+<pre><code>parallel-limited-sequence :: Int -&gt; [LazyPromise x] -&gt; LazyPromise [x]
+</code></pre>
+
+<h3>
+<a name="parallel-apply-each" class="anchor" href="#parallel-apply-each"><span class="octicon octicon-link"></span></a>parallel-apply-each</h3>
+
+<pre><code>parallel-apply-each :: x -&gt; [x -&gt; Promise y] -&gt; Promise [y]
+</code></pre>
+
+<h3>
+<a name="serial-apply-each" class="anchor" href="#serial-apply-each"><span class="octicon octicon-link"></span></a>serial-apply-each</h3>
+
+<pre><code>serial-apply-each :: x -&gt; [x -&gt; Promise y] -&gt; Promise [y]
+</code></pre>
+
+<h3>
+<a name="parallel-limited-apply-each" class="anchor" href="#parallel-limited-apply-each"><span class="octicon octicon-link"></span></a>parallel-limited-apply-each</h3>
+
+<pre><code>parallel-limited-apply-each :: x -&gt; [x -&gt; Promise y] -&gt; Promise [y]
+</code></pre>
+
+<h3>
+<a name="parallel-sort-by" class="anchor" href="#parallel-sort-by"><span class="octicon octicon-link"></span></a>parallel-sort-by</h3>
+
+<p>Sort the list using the given function for making the comparison between the items.</p>
+
+<pre><code>parallel-sort-by :: (a -&gt; Promise b) -&gt; [a] -&gt; Promise [a]
+</code></pre>
+
+<h3>
+<a name="parallel-sort-with" class="anchor" href="#parallel-sort-with"><span class="octicon octicon-link"></span></a>parallel-sort-with</h3>
+
+<p><code>parallel-sort-with</code> takes a binary function which compares two items and returns either
+a positive number, 0, or a negative number, and sorts the inputted list
+using that function. </p>
+
+<pre><code>parallel-sort-with :: (a -&gt; a -&gt; Promise i) -&gt; [a] -&gt; Promise [a]
+</code></pre>
+
+<h3>
+<a name="waterfall" class="anchor" href="#waterfall"><span class="octicon octicon-link"></span></a>waterfall</h3>
+
+<pre><code>waterfall :: x -&gt; (x -&gt; Promise x) -&gt; Promise x
+</code></pre>
+
+<h3>
+<a name="transform-promise-either" class="anchor" href="#transform-promise-either"><span class="octicon octicon-link"></span></a>transform-promise-either</h3>
+
+<p>Bind a promise monad to an either monad. The result is a promise monad. 
+Since we can think of promise as a superset of either in the way it handles errors.</p>
+
+<pre><code>transform-promise-either :: Promise x -&gt; (x -&gt; Either y) -&gt; Promise y
+</code></pre>
+
+<h3>
+<a name="ftransform-promise-either" class="anchor" href="#ftransform-promise-either"><span class="octicon octicon-link"></span></a>ftransform-promise-either</h3>
+
+<p><code>transform-promise-either</code> with its arguments flipped.</p>
+
+<pre><code>ftransform-promise-either :: (x -&gt; Either y) -&gt; Promise x -&gt; Promise y
+</code></pre>
+
+<h3>
+<a name="transform-either-promise" class="anchor" href="#transform-either-promise"><span class="octicon octicon-link"></span></a>transform-either-promise</h3>
+
+<p>Bind an either monad to a promise monad.</p>
+
+<pre><code>transform-either-promise :: Either x -&gt; (x -&gt; Promise y) -&gt; Promise y
+</code></pre>
+
+<h3>
+<a name="ftransform-either-promise" class="anchor" href="#ftransform-either-promise"><span class="octicon octicon-link"></span></a>ftransform-either-promise</h3>
+
+<p><code>transform-either-promise</code> with its arguments flipped.</p>
+
+<pre><code>ftransform-either-promise :: (x -&gt; Promise y) -&gt; Either x -&gt; Promise y
+</code></pre>
+
+<h3>
+<a name="to-callback" class="anchor" href="#to-callback"><span class="octicon octicon-link"></span></a>to-callback</h3>
+
+<p>Convert the promise object to a callback with the signature of <code>(error, result) -&gt; void</code></p>
+
+<pre><code>Promise x -&gt; CB x
+</code></pre>
+
+<h3>
+<a name="from-value-callback" class="anchor" href="#from-value-callback"><span class="octicon octicon-link"></span></a>from-value-callback</h3>
+
+<p>Make a promise object from a callback with the signature of <code>(result) -&gt; void</code>, like <code>fs.exist</code></p>
+
+<pre><code>Cb x -&gt; Promise x
+</code></pre>
+
+<h3>
+<a name="from-error-value-callback" class="anchor" href="#from-error-value-callback"><span class="octicon octicon-link"></span></a>from-error-value-callback</h3>
+
+<p>Make a promise object from a callback with the signature of <code>(error, result) -&gt; void</code>, like <code>fs.stat</code></p>
+
+<pre><code>CB x -&gt; Promise x
+</code></pre>
+
+<h3>
+<a name="from-named-callbacks" class="anchor" href="#from-named-callbacks"><span class="octicon octicon-link"></span></a>from-named-callbacks</h3>
+
+<p>Make a promise object from <code>obj</code>.</p>
+
+<pre><code>String -&gt; String -&gt; obj -&gt; Promise x
+</code></pre>
+
+<hr><hr><hr><h1>
+<a name="callbacks" class="anchor" href="#callbacks"><span class="octicon octicon-link"></span></a>Callbacks</h1>
+
+<p>These functions are analogous to their promise-based counterparts that are documented above.
+But instead of a <code>Promise</code> their last argument is a callback. You can think of curried version of these functions as functions that return a function that takes <code>callback</code>.</p>
+
+<pre><code>{callbacks} = require \prelude-ls
+</code></pre>
+
+<h2>
+<a name="convention" class="anchor" href="#convention"><span class="octicon octicon-link"></span></a>Convention</h2>
+
+<p>This would be our definition of asynchronous functions:</p>
+
+<blockquote>
+<p>If function <code>f</code> returns function <code>g</code> and <code>g</code> takes a <code>callback</code> as its only argument; then <code>f</code> is an asynchronous function.</p>
+</blockquote>
+
+<p>Our callbacks will always receive two parameters: <code>(error, result)</code>.</p>
+
+<p>Here <code>CB a</code> stands for a callback function with signature: <code>(err, a) -&gt; void</code>
+You can get the result of an asynchronous function (with a <code>callback</code> of type of <code>CB a</code>) by:</p>
+
+<pre><code>(err, a) &lt;- f
+</code></pre>
+
+<h2>
+<a name="composition-of-asynchronous-actions" class="anchor" href="#composition-of-asynchronous-actions"><span class="octicon octicon-link"></span></a>Composition of Asynchronous Actions</h2>
+
+<h3>
+<a name="returna" class="anchor" href="#returna"><span class="octicon octicon-link"></span></a>returnA</h3>
+
+<p>Inject a value into an asynchronous action.</p>
+
+<pre><code>returnA :: x -&gt; CB x
+</code></pre>
+
+<h3>
+<a name="fmapa" class="anchor" href="#fmapa"><span class="octicon octicon-link"></span></a>fmapA</h3>
+
+<p>Map a normal function over an asynchronous action.</p>
+
+<pre><code>fmapA :: (x -&gt; y) -&gt; CB x -&gt; CB y
+</code></pre>
+
+<h3>
+<a name="ffmapa" class="anchor" href="#ffmapa"><span class="octicon octicon-link"></span></a>ffmapA</h3>
+
+<p>fmapA with its arguments flipped</p>
+
+<pre><code>ffmapA :: CB x -&gt; (x -&gt; y) -&gt; CB y
+</code></pre>
+
+<h3>
+<a name="binda" class="anchor" href="#binda"><span class="octicon octicon-link"></span></a>bindA</h3>
+
+<p>Sequentially compose two asynchronous actions, passing the value produced
+by the first as an argument to the second.</p>
+
+<pre><code>bindA :: CB x -&gt; (x -&gt; CB y) -&gt; CB y
+</code></pre>
+
+<h3>
+<a name="fbinda" class="anchor" href="#fbinda"><span class="octicon octicon-link"></span></a>fbindA</h3>
+
+<p>bindA with its arguments flipped</p>
+
+<pre><code>fbindA :: (x -&gt; CB y) -&gt; CB x -&gt; CB y
+</code></pre>
+
+<h3>
+<a name="kcompa" class="anchor" href="#kcompa"><span class="octicon octicon-link"></span></a>kcompA</h3>
+
+<p>Similar to Left-to-right Kleisli composition, <code>kcompA</code> composes
+two asynchronous actions passing the value produced
+by the first as an argument to the second. The result is a new
+asynchronous function that takes the argument of the first function.</p>
+
+<pre><code>kcompA :: (x -&gt; CB y) -&gt; (y -&gt; CB z) -&gt; (x -&gt; CB z)
+</code></pre>
+
+<h3>
+<a name="folda" class="anchor" href="#folda"><span class="octicon octicon-link"></span></a>foldA</h3>
+
+<p>The <code>foldA</code> function is analogous to <code>foldl</code>, except that its result is
+encapsulated in an asynchronous callback.</p>
+
+<pre><code>foldA :: (a -&gt; b -&gt; m a) -&gt; a -&gt; [b] -&gt; m a
+</code></pre>
+
+<h3>
+<a name="sequencea" class="anchor" href="#sequencea"><span class="octicon octicon-link"></span></a>sequenceA</h3>
+
+<p>Evaluate each action in the sequence from left to right,  and collect the results.</p>
+
+<pre><code>sequenceA :: [CB x] -&gt; CB [x]
+</code></pre>
+
+<h3>
+<a name="filtera" class="anchor" href="#filtera"><span class="octicon octicon-link"></span></a>filterA</h3>
+
+<p>Filter the list by applying the asynchronous predicate function.</p>
+
+<pre><code>filterA :: (x -&gt; CB Boolean) -&gt; [x] -&gt; CB [x]
+</code></pre>
+
+<h2>
+<a name="either" class="anchor" href="#either"><span class="octicon octicon-link"></span></a>Either</h2>
+
+<h3>
+<a name="returne" class="anchor" href="#returne"><span class="octicon octicon-link"></span></a>returnE</h3>
+
+<p>Inject a value into an either action.</p>
+
+<pre><code>returnE :: x -&gt; Either x
+</code></pre>
+
+<h3>
+<a name="fmape" class="anchor" href="#fmape"><span class="octicon octicon-link"></span></a>fmapE</h3>
+
+<pre><code>fmapE :: (x -&gt; y) -&gt; Either x -&gt; Either y
+</code></pre>
+
+<h3>
+<a name="fmape-1" class="anchor" href="#fmape-1"><span class="octicon octicon-link"></span></a>fmapE</h3>
+
+<pre><code>ffmapE :: Either x -&gt; (x -&gt; y) -&gt; Either y
+</code></pre>
+
+<h3>
+<a name="binde" class="anchor" href="#binde"><span class="octicon octicon-link"></span></a>bindE</h3>
+
+<pre><code>bindE :: Either x -&gt; (x -&gt; Either y) -&gt; Either y
+</code></pre>
+
+<h3>
+<a name="binde-1" class="anchor" href="#binde-1"><span class="octicon octicon-link"></span></a>bindE</h3>
+
+<pre><code>bindE :: (x -&gt; Either y) -&gt; Either x -&gt; Either y
+</code></pre>
+
+<h3>
+<a name="kcompe" class="anchor" href="#kcompe"><span class="octicon octicon-link"></span></a>kcompE</h3>
+
+<p>Left to right Kleisli composition</p>
+
+<pre><code>kcompE :: (x -&gt; Either y) -&gt; (y -&gt; Either z) -&gt; (x -&gt; Either z)
+</code></pre>
+
+<h3>
+<a name="folde" class="anchor" href="#folde"><span class="octicon octicon-link"></span></a>foldE</h3>
+
+<pre><code>foldE :: (a -&gt; b -&gt; Either a) -&gt; a -&gt; [b] -&gt; Either a
+</code></pre>
+
+<h3>
+<a name="sequencee" class="anchor" href="#sequencee"><span class="octicon octicon-link"></span></a>sequenceE</h3>
+
+<pre><code>sequenceE :: [Either x] -&gt; Either [x]
+</code></pre>
+
+<h3>
+<a name="transformae" class="anchor" href="#transformae"><span class="octicon octicon-link"></span></a>transformAE</h3>
+
+<pre><code>transformAE :: CB x -&gt; (x -&gt; Either y) -&gt; CB y
+</code></pre>
+
+<h3>
+<a name="ftransformae" class="anchor" href="#ftransformae"><span class="octicon octicon-link"></span></a>ftransformAE</h3>
+
+<pre><code>ftransformAE :: (x -&gt; Either y) -&gt; CB x -&gt; CB y
+</code></pre>
+
+<h3>
+<a name="transformea" class="anchor" href="#transformea"><span class="octicon octicon-link"></span></a>transformEA</h3>
+
+<pre><code>transformEA :: Either x -&gt; (x -&gt; CB y) -&gt; CB y
+</code></pre>
+
+<h3>
+<a name="ftransformea" class="anchor" href="#ftransformea"><span class="octicon octicon-link"></span></a>ftransformEA</h3>
+
+<pre><code>ftransformEA :: (x -&gt; CB y) -&gt; Either x -&gt; CB y
+</code></pre>
+
+<h1>
+<a name="lists-1" class="anchor" href="#lists-1"><span class="octicon octicon-link"></span></a>Lists</h1>
+
+<h2>
+<a name="map" class="anchor" href="#map"><span class="octicon octicon-link"></span></a>Map</h2>
+
+<h3>
+<a name="parallel-map-1" class="anchor" href="#parallel-map-1"><span class="octicon octicon-link"></span></a>parallel-map</h3>
+
+<pre><code>parallel-map :: (a -&gt; CB b) -&gt; [a] -&gt; CB [b]
+</code></pre>
+
+<h3>
+<a name="serial-map-1" class="anchor" href="#serial-map-1"><span class="octicon octicon-link"></span></a>serial-map</h3>
+
+<p>Serial Asynchronous Map</p>
+
+<pre><code>serial-map :: (a -&gt; CB b) -&gt; [a] -&gt; CB [b]
+</code></pre>
+
+<h3>
+<a name="parallel-map-limited" class="anchor" href="#parallel-map-limited"><span class="octicon octicon-link"></span></a>parallel-map-limited</h3>
+
+<p>Similar to <code>parallel-map</code>, only no more than 
+<code>limit</code> iterators will be simultaneously running at any time.</p>
+
+<pre><code>parallel-map-limited :: Int -&gt; (x -&gt; CB y) -&gt; [x] -&gt; CB [y]
+</code></pre>
+
+<h2>
+<a name="filter" class="anchor" href="#filter"><span class="octicon octicon-link"></span></a>Filter</h2>
+
+<h3>
+<a name="parallel-filter-1" class="anchor" href="#parallel-filter-1"><span class="octicon octicon-link"></span></a>parallel-filter</h3>
+
+<pre><code>parallel-filter :: (x -&gt; CB Boolean) -&gt; [x] -&gt; CB [x]
+</code></pre>
+
+<h3>
+<a name="serial-filter-1" class="anchor" href="#serial-filter-1"><span class="octicon octicon-link"></span></a>serial-filter</h3>
+
+<pre><code>serial-filter :: (x -&gt; CB Boolean) -&gt; [x] -&gt; CB [x]
+</code></pre>
+
+<h3>
+<a name="parallel-limited-filter-1" class="anchor" href="#parallel-limited-filter-1"><span class="octicon octicon-link"></span></a>parallel-limited-filter</h3>
+
+<pre><code>parallel-limited-filter :: Int -&gt; (x -&gt; CB Boolean) -&gt; [x] -&gt; CB x
+</code></pre>
+
+<h2>
+<a name="any-all-find" class="anchor" href="#any-all-find"><span class="octicon octicon-link"></span></a>Any, All, Find</h2>
+
+<h3>
+<a name="parallel-any-1" class="anchor" href="#parallel-any-1"><span class="octicon octicon-link"></span></a>parallel-any</h3>
+
+<pre><code>parallel-any :: (x -&gt; CB Boolean) -&gt; [x] -&gt; CB Boolean
+</code></pre>
+
+<h3>
+<a name="serial-any-1" class="anchor" href="#serial-any-1"><span class="octicon octicon-link"></span></a>serial-any</h3>
+
+<p>serial-any :: (x -&gt; CB Boolean) -&gt; [x] -&gt; CB Boolean</p>
+
+<h3>
+<a name="parallel-limited-any-1" class="anchor" href="#parallel-limited-any-1"><span class="octicon octicon-link"></span></a>parallel-limited-any</h3>
+
+<pre><code>parallel-limited-any :: Int -&gt; (x -&gt; CB Boolean) -&gt; [x] -&gt; CB Boolean
+</code></pre>
+
+<h3>
+<a name="parallel-all-1" class="anchor" href="#parallel-all-1"><span class="octicon octicon-link"></span></a>parallel-all</h3>
+
+<pre><code>parallel-all :: (x -&gt; CB Boolean) -&gt; [x] -&gt; CB Boolean
+</code></pre>
+
+<h3>
+<a name="serial-all-1" class="anchor" href="#serial-all-1"><span class="octicon octicon-link"></span></a>serial-all</h3>
+
+<pre><code>serial-all :: (x -&gt; CB Boolean) -&gt; [x] -&gt; CB Boolean
+</code></pre>
+
+<h3>
+<a name="parallel-limited-all-1" class="anchor" href="#parallel-limited-all-1"><span class="octicon octicon-link"></span></a>parallel-limited-all</h3>
+
+<pre><code>parallel-limited-all :: Int -&gt; (x -&gt; CB Boolean) -&gt; [x] -&gt; CB Boolean
+</code></pre>
+
+<h3>
+<a name="parallel-find-1" class="anchor" href="#parallel-find-1"><span class="octicon octicon-link"></span></a>parallel-find</h3>
+
+<pre><code>paralel-find :: (x -&gt; CB Boolean) -&gt; [x] -&gt; CB x
+</code></pre>
+
+<h3>
+<a name="serial-find-1" class="anchor" href="#serial-find-1"><span class="octicon octicon-link"></span></a>serial-find</h3>
+
+<pre><code>serial-find :: (x -&gt; CB Boolean) -&gt; [x] -&gt; CB x
+</code></pre>
+
+<h2>
+<a name="sort" class="anchor" href="#sort"><span class="octicon octicon-link"></span></a>Sort</h2>
+
+<h3>
+<a name="parallel-sort-by-1" class="anchor" href="#parallel-sort-by-1"><span class="octicon octicon-link"></span></a>parallel-sort-by</h3>
+
+<p>Sorts a list using the inputted function for making the comparison between the items.</p>
+
+<pre><code>parallel-sort-by :: (a -&gt; CB b) -&gt; [a] -&gt; CB [a]
+</code></pre>
+
+<h3>
+<a name="parallel-sort-with-1" class="anchor" href="#parallel-sort-with-1"><span class="octicon octicon-link"></span></a>parallel-sort-with</h3>
+
+<p>Takes a binary function which compares two items and returns either
+a positive number, 0, or a negative number, and sorts the inputted list
+using that function. </p>
+
+<pre><code>parallel-sort-with :: (a -&gt; a -&gt; CB i) -&gt; [a] -&gt; CB [a]
+</code></pre>
+
+<h2>
+<a name="control-flow" class="anchor" href="#control-flow"><span class="octicon octicon-link"></span></a>Control Flow</h2>
+
+<h3>
+<a name="serial-sequence-1" class="anchor" href="#serial-sequence-1"><span class="octicon octicon-link"></span></a>serial-sequence</h3>
+
+<pre><code>serial-sequence :: [CB x] -&gt; CB [x]
+</code></pre>
+
+<h3>
+<a name="parallel-sequence-1" class="anchor" href="#parallel-sequence-1"><span class="octicon octicon-link"></span></a>parallel-sequence</h3>
+
+<p>Run its sole input (a tasks array of functions) in parallel, 
+without waiting until the previous function has completed. 
+If any of the functions pass an error to its callback, 
+the main callback is immediately called with the value of the error. 
+Once the tasks have completed, the results are passed to the final callback as an array.</p>
+
+<pre><code>parallel-sequence :: [CB x] -&gt; CB [x]
+</code></pre>
+
+<h3>
+<a name="parallel-limited-sequence-1" class="anchor" href="#parallel-limited-sequence-1"><span class="octicon octicon-link"></span></a>parallel-limited-sequence</h3>
+
+<pre><code>parallel-limited-sequence :: Int -&gt; [CB x] -&gt; CB [x]
+</code></pre>
+
+<h3>
+<a name="parallel-apply-each-1" class="anchor" href="#parallel-apply-each-1"><span class="octicon octicon-link"></span></a>parallel-apply-each</h3>
+
+<pre><code>parallel-apply-each :: x -&gt; [x -&gt; CB y] -&gt; CB [y]
+</code></pre>
+
+<h3>
+<a name="serial-apply-each-1" class="anchor" href="#serial-apply-each-1"><span class="octicon octicon-link"></span></a>serial-apply-each</h3>
+
+<pre><code>serial-apply-each :: x -&gt; [x -&gt; CB y] -&gt; CB [y]
+</code></pre>
+
+<h3>
+<a name="parallel-limited-apply-each-1" class="anchor" href="#parallel-limited-apply-each-1"><span class="octicon octicon-link"></span></a>parallel-limited-apply-each</h3>
+
+<pre><code>parallel-limited-apply-each :: x -&gt; [x -&gt; CB y] -&gt; CB [y]
+</code></pre>
+
+<h3>
+<a name="waterfall-1" class="anchor" href="#waterfall-1"><span class="octicon octicon-link"></span></a>waterfall</h3>
+
+<pre><code>waterfall :: x -&gt; (x -&gt; CB x) -&gt; CB x
+</code></pre>
+
+<h3>
+<a name="serial-fold" class="anchor" href="#serial-fold"><span class="octicon octicon-link"></span></a>serial-fold</h3>
+
+<pre><code>serial-fold :: (a -&gt; b -&gt; m a) -&gt; a -&gt; [b] -&gt; m a
+</code></pre>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Async-ls maintained by <a href="https://github.com/homam">homam</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
