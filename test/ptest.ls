@@ -8,6 +8,9 @@
 	filterP
 
 	sequenceP
+
+	promise-monad
+
 	serial-sequence
 	parallel-limited-sequence
 
@@ -40,6 +43,11 @@
 
 	waterfall
 } = require \./../lib/promises
+{
+	liftM,
+	liftM2,
+	ap
+} = require \./../lib/monads
 {each} = require \prelude-ls
 Promise = require \./../lib/lazypromise
 assert = require 'assert'
@@ -229,6 +237,12 @@ less-than-ten = (x) ->
 		setTimeout ->
 			res x<10
 		, 20
+
+describe 'monads', ->
+	describe 'liftM', ->
+		_it 'on 2 + 8 = 10', (done) ->
+			f = (x, y) -> x + y
+			liftM2 promise-monad, f, (id-promise 2), (id-promise 8) |> p-equal done, 10
 
 
 describe 'find', ->
