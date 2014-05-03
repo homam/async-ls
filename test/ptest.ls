@@ -44,11 +44,16 @@
 	waterfall
 } = require \./../lib/promises
 {
-	liftM,
-	liftM2,
+	liftM
+	liftM2
 	ap
+
+	monadize
+	writer-monad
+	make-writer-monad
+	memorize-monad
 } = require \./../lib/monads
-{each} = require \prelude-ls
+{each, flip} = require \prelude-ls
 Promise = require \./../lib/lazypromise
 assert = require 'assert'
 _it = it
@@ -243,6 +248,12 @@ describe 'monads', ->
 		_it 'on 2 + 8 = 10', (done) ->
 			f = (x, y) -> x + y
 			liftM2 promise-monad, f, (id-promise 2), (id-promise 8) |> p-equal done, 10
+
+
+	describe 'memorize-monad', ->
+		_it 'times-two 10 >>= times-two 10 should be [40, 10]', ->
+			times-two = (x) -> (memorize-monad.pure x) |> (memorize-monad.fmap (*2))
+			assert.deep-equal [40, 10], (times-two 10) `memorize-monad.bind` times-two
 
 
 describe 'find', ->

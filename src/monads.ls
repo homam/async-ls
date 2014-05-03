@@ -135,9 +135,9 @@ either-monad = monadize pure-either, fmap-either, bind-either
 pure-writer = (mempty, x) --> [x, mempty]
 
 
-# > fmap-writer :: Monoid s => s -> (x -> y) -> [x, s] -> [y, s]
-fmap-writer = (mappend, f, [x, s]) -->
-	[f x, s]
+# > fmap-writer :: (x -> y) -> [x, s] -> [y, s]
+fmap-writer = (f, [x, s]) -->
+	[(f x), s]
 
 # > bind-writer :: Monoid s => s -> [x, s] -> (x -> [y, s])
 bind-writer = (mappend, [x, xs], f) -->
@@ -149,8 +149,22 @@ tell-writer = (mappend, [x, xs], s) -->
 	[x, xs `mappend` s]
 
 
-writer-monad = (monadize pure-either, fmap-writer, bind-writer) <<< tell: tell-writer
+writer-monad = (monadize pure-writer, fmap-writer, bind-writer) <<< tell: tell-writer
 
+
+make-writer-monad = (mempty, mappend) ->
+	(monadize (pure-writer mempty), fmap-writer, (bind-writer mappend)) <<< tell: (tell-writer mappend)
+
+
+list-writer-monad = make-writer-monad [], (++)
+
+
+# ### memorize-monad
+# Memorize monad remembers its initial argument forever.
+memorize-monad = monadize do
+	((x) -> [x, x]) 
+	((f, [x, s]) --> [(f x), s])
+	(([x, s], f) --> [y, _] = f x; [y, s])
 
 # exports
 exports = exports or this
@@ -168,4 +182,7 @@ exports <<< {
 	list-monad
 	either-monad
 	writer-monad
+	make-writer-monad
+	list-writer-monad
+	memorize-monad
 }
