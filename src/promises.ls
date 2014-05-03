@@ -307,10 +307,12 @@ parallel-sort-with = (f, xs) -->
 		|> fbindP parallel-map compareP
 		|> fmapP (cs) -> 
 			compare = ([a,ia],[b,ib]) ->
-				[_,_,c]:tuple? = find (([x,y,_]) -> x == ia and y == ib), cs
-				return c if !!tuple
-				[_,_,c1] = find (([x,y,_]) -> y == ia and x == ib), cs
-				-1 * c1
+				direction = ia > ib
+				[_,_,c]:tuple? = find (([x,y,_]) -> 
+					| direction => y == ia and x == ib
+					| otherwise => x == ia and y == ib
+				), cs
+				if direction then -1*c else c
 			ilist.concat!.sort compare .map (.0)
 
 
@@ -405,7 +407,7 @@ from-error-value-callback = (self, f) ->
 
 
 # ### from-error-values-callback
-# Make a promise object from a callback with the signature of `(error, result1, result2, ...) -> void`, like `(error, response, body) <- request`
+# Make a promise object from a callback with the signature of `(error, result1, result2, ...) -> void`, like `(error, response, body) <- request url`
 # > ((...x) -> y) -> Object -> CB x -> Promise y
 from-error-values-callback = (projection, self, f) ->
 	->

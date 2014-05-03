@@ -292,9 +292,13 @@ parallel-sort-with = (f, xs, callback) !-->
 		|> fbindA parallel-map compareA
 		|> fmapA (cs) -> 
 			compare = ([a,ia],[b,ib]) ->
-				[_,_,c] = find (([x,y,_]) -> x == ia and y == ib), cs
-				c
-			ilist.concat!.sort compare .map ([i,_]) -> i
+				direction = ia > ib
+				[_,_,c]:tuple? = find (([x,y,_]) -> 
+					| direction => y == ia and x == ib
+					| otherwise => x == ia and y == ib
+				), cs
+				if direction then -1*c else c
+			ilist.concat!.sort compare .map fst
 		<| callback
 
 #
