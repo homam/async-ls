@@ -18,7 +18,6 @@
 } = require \prelude-ls
 
 
-
 get = (url) ->
 	options = 
 		url: url
@@ -36,7 +35,7 @@ search = (query) ->
 	get "http://en.wikipedia.org/w/api.php?action=query&prop=revisions&titles=#{query}&rvprop=content&format=json"
 
 get-links = (query) ->
-	return returnP JSON.parse(localStorage.get-item query) if !!localStorage.get-item query
+	return returnP JSON.parse(localStorage.get-item query) if !!(localStorage.get-item query)
 	return returnP [] if query.length < 1
 	search query
 		|> fmapP (-> 
@@ -46,7 +45,7 @@ get-links = (query) ->
 			|> (.match(/\[\[(.+?)\]\]/gi))
 			|> (-> it or [])
 			|> map (-> it.match(/^\[\[(.+?)]\]$/).1.split(/[#\|]/).0)
-			|> filter (-> (it.length > 0) and (it.indexOf\: < 0))
+			|> filter (-> (it.length > 0) and (it.indexOf(':') < 0))
 		)
 		|> fmapP (->
 			localStorage.set-item query, JSON.stringify(it)
@@ -72,7 +71,7 @@ crawl = (depth, query) -->
 	# console.log depth, query, !!queried-before[query], (query.indexOf\: > -1)
 	return promise-monad.pure [] if depth > 2
 	return promise-monad.pure queried-before[query] if !!queried-before[query]
-	return promise-monad.pure [] if query.indexOf\: > -1
+	return promise-monad.pure [] if query.indexOf(':') > -1
 	
 
 	get-links query |> promise-monad.fbind (ls) ->
