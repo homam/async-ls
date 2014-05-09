@@ -41,8 +41,7 @@ ffmapP = flip fmapP
 # by the first as an argument to the second.
 # > bindP :: p x -> (x -> p y) -> p y
 bindP = (f, g) -->
-	f.then (fx) ->
-		g fx
+	f.then -> g it
 
 
 # ### fbindP
