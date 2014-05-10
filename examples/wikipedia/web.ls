@@ -1,11 +1,9 @@
 {
 	promises: {
 		from-named-callbacks, 
-		fmapP, ffmapP, parallel-map,
 		promise-monad
-		returnP
-		sequenceP
-		parallel-limited-map
+		serial-map
+		LazyPromise
 	}
 	monads: {
 		memorize-monad
@@ -35,10 +33,10 @@ search = (query) ->
 	get "http://en.wikipedia.org/w/api.php?action=query&prop=revisions&titles=#{query}&rvprop=content&format=json"
 
 get-links = (query) ->
-	return returnP JSON.parse(localStorage.get-item query) if !!(localStorage.get-item query)
-	return returnP [] if query.length < 1
+	return wait 500, JSON.parse(localStorage.get-item query) if !!(localStorage.get-item query)
+	return promise-monad.pure [] if query.length < 3
 	search query
-		|> fmapP (-> 
+		|> promise-monad.fmap (-> 
 			it.query.pages 
 			|> values >> (?.0?.revisions?.0?.[\*]) 
 			|> (-> it or ' ')
@@ -47,7 +45,7 @@ get-links = (query) ->
 			|> map (-> it.match(/^\[\[(.+?)]\]$/).1.split(/[#\|]/).0)
 			|> filter (-> (it.length > 0) and (it.indexOf(':') < 0))
 		)
-		|> fmapP (->
+		|> promise-monad.fmap (->
 			localStorage.set-item query, JSON.stringify(it)
 			it
 		)

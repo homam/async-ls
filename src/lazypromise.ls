@@ -17,6 +17,10 @@ LazyPromise = (fn) !->
 		(promise := new Promise (res_, rej_) !-> set-immediate (!-> fn res_, rej_)) if promise is null
 		promise.then res, rej
 
+	this.catch = (rej) ->
+		(promise := new Promise (res_, rej_) !-> set-immediate (!-> fn res_, rej_)) if promise is null
+		promise.catch rej
+
 
 for k in Obj.keys(Promise)
 	LazyPromise[k] = Promise[k]
