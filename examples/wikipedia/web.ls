@@ -1,12 +1,8 @@
 {
 	promises: {
 		from-named-callbacks, 
-		fmapP, ffmapP, parallel-map,
 		promise-monad
-		returnP
-		sequenceP
 		serial-map
-		parallel-limited-map
 		LazyPromise
 	}
 	monads: {
@@ -41,9 +37,9 @@ search = (query) ->
 
 get-links = (query) ->
 	return wait 500, JSON.parse(localStorage.get-item query) if !!(localStorage.get-item query)
-	return returnP [] if query.length < 3
+	return promise-monad.pure [] if query.length < 3
 	search query
-		|> fmapP (-> 
+		|> promise-monad.fmap (-> 
 			it.query.pages 
 			|> values >> (?.0?.revisions?.0?.[\*]) 
 			|> (-> it or ' ')
@@ -52,7 +48,7 @@ get-links = (query) ->
 			|> map (-> it.match(/^\[\[(.+?)]\]$/).1.split(/[#\|]/).0)
 			|> filter (-> (it.length > 3) and (it.indexOf(':') < 0))
 		)
-		|> fmapP (->
+		|> promise-monad.fmap (->
 			localStorage.set-item query, JSON.stringify(it)
 			it
 		)
