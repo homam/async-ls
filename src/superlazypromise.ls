@@ -66,18 +66,21 @@ super-lazy-promise-monad = monadize do
 	((x) -> 
 		new SuperLazyPromise (res, rej) !->
 			res x
+		#.go!
 	)
 	((f, g) --> 
 		new SuperLazyPromise (res, rej) !->
 			g.then -> res(f it)
 			g.catch -> rej it
 			g.go!
+		#.go!
 	)
 	((f, g) --> 
 		new SuperLazyPromise (res, rej) !->
 			f.then -> (g it).go!.then( res, rej)
 			f.catch -> rej it
 			f.go!
+		#.go!
 	)
 
 
@@ -110,5 +113,5 @@ super-lazy-promise-parallel-map = (f,xs) --> sequenceSLP(map (-> f it .go!), xs)
 
 ((double 30) `super-lazy-promise-monad.ffmap` (-> it * 4)).go! |> logP
 
-super-lazy-promise-parallel-map(double, [10 to 20]).go! |> logP
+super-lazy-promise-serial-map(double, [10 to 20]).go! |> logP
 
