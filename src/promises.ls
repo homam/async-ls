@@ -372,7 +372,7 @@ to-callback = (p, callback) !-->
 # ### from-value-callback
 # Make a promise object from a callback with the signature of `(result) -> void`, like `fs.exist`
 # > Cb x -> p x
-from-value-callback = (self, f) ->
+from-value-callback = (f) ->
 	->
 		_res = null
 		args = Array.prototype.slice.call(arguments, 0) ++ [->
@@ -381,15 +381,16 @@ from-value-callback = (self, f) ->
 		new Promise (res, rej) ->
 			_res := res
 			try
-				f.apply (self or this), args
+				f.apply null, args
 			catch ex
 				rej ex
 	
 
 # ### from-error-value-callback
 # Make a promise object from a callback with the signature of `(error, result) -> void`, like `fs.stat`
-# > Object -> CB x -> Promise x
-from-error-value-callback = (self, f) ->
+# > CB x -> Promise x
+
+from-error-value-callback = (f) ->
 	->
 		_res = null
 		_rej = null
@@ -401,15 +402,15 @@ from-error-value-callback = (self, f) ->
 			_res := res
 			_rej := rej
 			try
-				f.apply (self or this), args
+				f.apply null, args
 			catch ex
 				rej ex
 
 
 # ### from-error-values-callback
 # Make a promise object from a callback with the signature of `(error, result1, result2, ...) -> void`, like `(error, response, body) <- request url`
-# > ((...x) -> y) -> Object -> CB x -> Promise y
-from-error-values-callback = (projection, self, f) ->
+# > ((...x) -> y) -> CB x -> Promise y
+from-error-values-callback = (projection, f) ->
 	->
 		_res = null
 		_rej = null
@@ -421,7 +422,7 @@ from-error-values-callback = (projection, self, f) ->
 			_res := res
 			_rej := rej
 			try
-				f.apply (self or this), args
+				f.apply null, args
 			catch ex
 				rej ex
 

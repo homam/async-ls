@@ -115,18 +115,19 @@ list-monad = monadize (-> [it]), map, flip (concat . map)
 pure-either = (x) -> [null, x]
 
 # > fmap-either :: (x -> y) -> Either x -> Either y
-fmap-either = (f, [err, x]) ->
+fmap-either = (f, [err, x]) -->
 	if !!err
 		[err, null]
 	else
 		[null, f x]
 
 # > bind-either :: Either x -> (x -> Either y) -> Either y
-bind-either = ([errf, fx], g) ->
+bind-either = ([errf, fx], g) -->
 	if !!errf then [errf, null] else g fx
 
 # ### either-monad
-either-monad = monadize pure-either, fmap-either, bind-either 
+either-monad = 
+	(monadize pure-either, fmap-either, bind-either) <<< error: (e) -> [e, null]
 
 
 # ### Writer
