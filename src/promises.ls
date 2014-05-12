@@ -19,27 +19,27 @@ Promise = require \./lazypromise
 # ## Compositions
 # ### returnP
 # Inject a value into a promise.
-# > returnP :: x -> p x
+# > returnP :: x -> Promise x
 returnP = (x) ->
 	Promise.resolve x
 
 
 # ### fmapP
 # Map a normal function over a promise.
-# > fmapP :: (x -> y) -> p x -> p y
+# > fmapP :: (x -> y) -> Promise x -> Promise y
 fmapP = (f, g) -->
 	g.then -> f it
 
 # ### ffmapP
 # `fmapP` with its arguments flipped.
-# > ffmapP :: p x -> (x -> y) -> p y
+# > ffmapP :: Promise x -> (x -> y) -> Promise y
 ffmapP = flip fmapP
 
 
 # ### bindP
 # Sequentially compose two promises, passing the value produced
 # by the first as an argument to the second.
-# > bindP :: p x -> (x -> p y) -> p y
+# > bindP :: Promise x -> (x -> Promise y) -> Promise y
 bindP = (f, g) -->
 	f.then (fx) ->
 		g fx
@@ -317,7 +317,7 @@ parallel-sort-with = (f, xs) -->
 
 
 # ### waterfall
-# > waterfall :: x -> (x -> p x) -> p x
+# > waterfall :: x -> [x -> Promise x] -> Promise x
 waterfall = (x, fs) -->
 	foldP ((a, y) -> y a), x, fs
 
