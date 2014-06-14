@@ -500,5 +500,6 @@ exports <<< {
 	to-callback
 	from-value-callback
 	from-error-value-callback
+	from-error-values-callback
 	from-named-callbacks
 }
