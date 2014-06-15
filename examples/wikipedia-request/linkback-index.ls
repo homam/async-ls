@@ -2,7 +2,7 @@
 	promises: {
 		from-error-value-callback
 		from-error-values-callback
-		to-callback
+		left-or-right
 		promise-monad
 		parallel-limited-map
 		serial-map
@@ -20,20 +20,17 @@ crypto = require \crypto
 
 
 add-cache = (query, links) -->
-	hash = crypto.createHash('md5').update(query).digest('hex')
+	hash = crypto.createHash \md5 .update query .digest \hex
 	(from-error-value-callback fs.write-file) "./out/#{hash}.json", JSON.stringify {query: query, links: links}, null, 4
 		|> promise-monad.fmap -> links
 
 get-cache = (query) ->
-	hash = crypto.createHash('md5').update(query).digest('hex')
+	hash = crypto.createHash \md5 .update query .digest \hex
 	(from-error-value-callback fs.read-file) "./out/#{hash}.json", encoding: \utf8
 		|> promise-monad.fmap (-> JSON.parse it .links)
 
-cache = (query, promise-maker) ->
-	new LazyPromise (res, rej) ->
-		get-cache query # eat any error that get-cache might throw
-			..then -> if !!it then res it else (promise-maker! `promise-monad.bind` add-cache query).then res, rej
-			..catch -> (promise-maker! `promise-monad.bind` add-cache query).then res, rej
+cache = (query, promise-maker) -->
+	query |> get-cache `left-or-right` (promise-maker `promise-monad[\>=>]` add-cache query)
 
 search = (query) -> 
 	(from-error-values-callback ((_, body) -> body), request) "http://en.wikipedia.org/w/api.php?action=query&prop=revisions&titles=#{query}&rvprop=content&format=json"
@@ -41,22 +38,25 @@ search = (query) ->
 get-links = (query) ->
 	return promise-monad.pure [] if query.length < 3
 
-	cache query, -> (search query
-		|> promise-monad.fmap -> 
-			JSON.parse it
-			|> (.query.pages)
-			|> values >> (?.0?.revisions?.0?.[\*]) 
-			|> (-> it or ' ')
-			|> (.match(/\[\[(.+?)\]\]/gi))
-			|> (-> it or [])
-			|> map (-> it.match(/^\[\[(.+?)]\]$/).1.split(/[#\|]/).0)
-			|> filter (-> (it.length > 0) and (it.indexOf(':') < 0))
-	)
+	cache do 
+		query 
+		-> 
+			search it
+			|> promise-monad.fmap -> 
+				JSON.parse it
+				|> (.query.pages)
+				|> values >> (?.0?.revisions?.0?.[\*]) 
+				|> (-> it or ' ')
+				|> (.match(/\[\[(.+?)\]\]/gi))
+				|> (-> it or [])
+				|> map (-> it.match(/^\[\[(.+?)]\]$/).1.split(/[#\|]/).0)
+				|> filter (-> (it.length > 0) and (it.indexOf(':') < 0))
+	
 
 calculate = (query) ->
 	get-links query 
 		|> promise-monad.fbind (links)-> 
-			links |> parallel-limited-map 4, ((link) ->  (get-links link) |> promise-monad.fmap (.indexOf(query)>-1))
+			links |> parallel-limited-map 4, ((link) -> (get-links link) |> promise-monad.fmap (.indexOf(query)>-1))
 		|> promise-monad.fmap (-> filter (==true), it .length / it.length)
 
 calculate 'common subexpression elimination' #'monad (functional programming)'
