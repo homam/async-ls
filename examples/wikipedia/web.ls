@@ -1,6 +1,6 @@
 {
 	promises: {
-		from-named-callbacks, 
+		from-named-callbacks
 		promise-monad
 		serial-map
 		LazyPromise
