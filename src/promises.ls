@@ -385,6 +385,22 @@ from-value-callback = (f) ->
 			catch ex
 				rej ex
 	
+# ### from-void-callback
+# Make a promise object from a callback with the signature of `(result) -> (error)`, like `fs.writeFile`
+# > Cbv x -> p x
+from-void-callback = (f) ->
+	->
+		_res = null
+		args = Array.prototype.slice.call(arguments, 0) ++ [->
+			_res!
+		]
+		new Promise (res, rej) ->
+			_res := res
+			try
+				f.apply null, args
+			catch ex
+				rej ex
+	
 
 # ### from-error-value-callback
 # Make a promise object from a callback with the signature of `(error, result) -> void`, like `fs.stat`
@@ -499,6 +515,7 @@ exports <<< {
 
 	to-callback
 	from-value-callback
+	from-void-callback
 	from-error-value-callback
 	from-error-values-callback
 	from-named-callbacks

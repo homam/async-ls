@@ -8,3 +8,4 @@ docs/
 *.js
 *.sublime-workspace
 *.sublime-workspace
+npm-debug.log
