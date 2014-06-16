@@ -359,6 +359,16 @@ transform-either-promise = ([errf, fx], g) ->
 ftransform-either-promise = flip transform-either-promise
 
 
+# ### left-or-right
+# Executes the left promie first and only execute the right promise if the left fails.
+# > left-or-right: (a -> Promise b) -> (a -> Promise b) -> (a -> Promise b)
+left-or-right = (f, g, x) --> 
+	new Promise (res, rej) ->
+		f x
+			..then -> res it
+			..catch -> g x .then res, rej
+
+
 # ### to-callback
 # Convert the promise object to a callback with the signature of `(error, result) -> void`
 # > p x -> CB x
@@ -512,6 +522,7 @@ exports <<< {
 	ftransform-either-promise
 	transform-promise-either
 	ftransform-promise-either
+	left-or-right
 
 	to-callback
 	from-value-callback

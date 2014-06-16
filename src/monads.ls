@@ -21,6 +21,11 @@ monadize = (pure, fmap, bind) ->
 	bind: bind
 	ffmap: flip fmap
 	fbind: flip bind
+	'<$>': fmap
+	'>>=': bind
+	'=<<': flip bind
+	'>=>': (f, g) --> kcompM this, f, g
+	'<=<': (f, g) --> kcompM this, g, f
 
 
 # ### kcompM
