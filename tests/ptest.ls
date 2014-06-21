@@ -58,6 +58,20 @@ Promise = require \./../lib/lazypromise
 assert = require 'assert'
 _it = it
 
+ensure-zero-concurrency = (f) ->
+	invoking = false
+	(...args) ->
+		new Promise (res, rej) ->
+			return rej new Error "Zero concurrency is broken" if invoking
+			invoking := true
+			(f ...args)
+				..then ->
+					invoking := false
+					res it
+				..catch ->
+					invoking := false
+					rej it
+
 p-equal = (done, expected, p) -->
 	p.then -> 
 		try
