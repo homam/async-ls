@@ -19,7 +19,7 @@
     "browserify": "*"
   },
   "scripts": {
-    "test": "./test.sh"
+    "test": "./test"
   },
   "repository": {
     "type": "git",
