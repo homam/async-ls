@@ -58,19 +58,55 @@ Promise = require \./../lib/lazypromise
 assert = require 'assert'
 _it = it
 
-ensure-zero-concurrency = (f) ->
-	invoking = false
+ensure-maximum-concurrency = (maximum-concurrency, f) -->
+	invoking = 0
 	(...args) ->
 		new Promise (res, rej) ->
-			return rej new Error "Zero concurrency is broken" if invoking
-			invoking := true
+			return rej new Error "Maximum #maximum-concurrency concurrency is broken" if invoking >= maximum-concurrency
+			invoking := invoking + 1 
 			(f ...args)
 				..then ->
-					invoking := false
+					invoking := invoking - 1
 					res it
 				..catch ->
-					invoking := false
+					invoking := invoking - 1
 					rej it
+
+
+ensure-minimum-concurrency = (minimum-concurrency, f) -->
+	invoking = 0
+	(...args) ->
+		new Promise (res, rej) ->
+			invoking := invoking + 1 
+			(f ...args)
+				..then ->
+					return rej new Error "Minimum #minimum-concurrency concurrency is broken" if invoking <= minimum-concurrency
+					invoking := invoking - 1
+					res it
+				..catch ->
+					invoking := invoking - 1
+					rej it
+
+
+ensure-minimum-maximum-concurrency = (minimum-concurrency, maximum-concurrency, f) -->
+	invoking = 0
+	(...args) ->
+		new Promise (res, rej) ->
+			return rej new Error "Maximum #maximum-concurrency concurrency is broken" if invoking >= maximum-concurrency
+			invoking := invoking + 1 
+			(f ...args)
+				..then ->
+					return rej new Error "Minimum #minimum-concurrency concurrency is broken (#invoking)" if invoking < minimum-concurrency
+					minimum-concurrency := minimum-concurrency - 1
+					invoking := invoking - 1
+					res it
+				..catch ->
+					minimum-concurrency := minimum-concurrency - 1
+					invoking := invoking - 1
+					rej it
+
+ensure-zero-concurrency = ensure-maximum-concurrency 1
+
 
 p-equal = (done, expected, p) -->
 	p.then -> 
@@ -433,7 +469,7 @@ describe 'map', ->
 			parallel-map double, [] |> p-deep-equal-in-time done, [], 0
 
 		_it 'on double [1 to 10] should be [2 to 20] in 20 milliseconds', (done) ->
-			parallel-map double, [1 to 10] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 20
+			parallel-map (ensure-minimum-maximum-concurrency 10, 10, double), [1 to 10] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 20
 
 		_it 'on double-error-at-five [1 to 10] should be an error', (done) ->
 			parallel-map double-error-at-five, [1 to 10] |> p-is-error-in-time done, 20
@@ -443,7 +479,7 @@ describe 'map', ->
 			serial-map double, [] |> p-deep-equal-in-time done, [], 0
 
 		_it 'on double [1 to 10] should be [2 to 20] in 20 milliseconds', (done) ->
-			serial-map double, [1 to 10] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 200
+			serial-map (ensure-zero-concurrency double), [1 to 10] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 200
 
 		_it 'on double-error-at-five [1 to 10] should be an error', (done) ->
 			serial-map double-error-at-five, [1 to 10] |> p-is-error-in-time done, 100
