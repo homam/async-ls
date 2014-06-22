@@ -228,6 +228,33 @@ p-deep-equal-in-time-and-more = (done, expected, expected-time, more, p) -->
 	p
 
 
+p-deep-equal-and-more = (done, expected, more, p) -->
+	ts = new Date!
+	p.then ->
+		try
+			assert.deep-equal expected, it
+			more!
+			done!
+		catch error
+			done error
+	p.catch -> 
+		done new Error "#it"
+	p
+
+p-is-error-and-more = (done, more, p) -->
+	ts = new Date!
+	p.then -> 
+		done new Error "Expected Error, but got #it"
+	p.catch ->
+		try 
+			more!
+			done!
+		catch error
+			done error
+	p
+
+
+
 rejectP = (x) ->
 	new Promise (res, rej) ->
 		setTimeout ->
@@ -335,7 +362,7 @@ describe 'find', ->
 				count := ++count
 				is-five ...
 
-			serial-find is-five-c, [1 to 10] |> p-deep-equal-in-time-and-more done, 5, 120, (-> assert.equal 5, count)
+			serial-find (ensure-zero-concurrency is-five-c), [1 to 10] |> p-deep-equal-and-more done, 5, (-> assert.equal 5, count)
 
 		_it 'on [1 to 10] should be 6 in 120 milliseconds with 6 calls', (done) ->
 			count = 0
@@ -343,7 +370,7 @@ describe 'find', ->
 				count := ++count
 				more-than-five ...
 
-			serial-find more-than-five-c, [1 to 10] |> p-deep-equal-in-time-and-more done, 6, 120, (-> assert.equal 6, count)
+			serial-find (ensure-zero-concurrency more-than-five-c), [1 to 10] |> p-deep-equal-and-more done, 6, (-> assert.equal 6, count)
 
 		_it 'on [1 to 10] should be rejected', (done) ->
 			count = 0
@@ -351,7 +378,7 @@ describe 'find', ->
 				count := ++count
 				(more-than-five-with-error 4) ...
 
-			serial-find more-than-five-with-error-c, [1 to 10] |> p-is-error-in-time-and-more done, 80, (-> assert.equal 4, count)
+			serial-find (ensure-zero-concurrency more-than-five-with-error-c), [1 to 10] |> p-is-error-and-more done, (-> assert.equal 4, count)
 
 	describe 'parallel-limited-find', ->
 
@@ -368,7 +395,7 @@ describe 'find', ->
 			parallel-limited-find 7, more-than-five, [1 to 20] |> p-equal-in-time done, 6, 20
 
 		_it 'on [-20 to -1] should be null in 100 milliseconds', (done) ->
-			parallel-limited-find 4, more-than-five, [-20 to -1] |> p-equal-in-time done, null, 100
+			parallel-limited-find 4, (ensure-minimum-maximum-concurrency 4, 4, more-than-five), [-20 to -1] |> p-equal done, null
 
 describe 'any', ->
 	describe 'serial-any', ->
@@ -382,7 +409,7 @@ describe 'any', ->
 			serial-any more-than-five, [] |> p-deep-equal-in-time done, false, 0
 
 		_it 'on [1 to 10] should be true in 120 milliseconds and with 6 calls', (done) ->
-			serial-any more-than-five-c, [1 to 10] |> p-deep-equal-in-time-and-more done, true, 120, (-> assert.equal 6, count)
+			serial-any (ensure-zero-concurrency more-than-five-c), [1 to 10] |> p-deep-equal-and-more done, true, (-> assert.equal 6, count)
 
 
 	describe 'parallel-any', ->
@@ -440,14 +467,15 @@ describe 'Compositions', ->
 				func more-than-five, [] |> p-deep-equal-in-time done, [], 0
 
 			_it "#name more-than-five on [1 to 10] should be [6 to 10] in 200 milliseconds", (done) ->
-				func more-than-five, [1 to 10] |> p-deep-equal-in-time done, [6 to 10], 200
+				func (ensure-zero-concurrency more-than-five), [1 to 10] |> p-deep-equal done, [6 to 10]
 
 	describe "foldP", ->
 		_it "on add, 1, [] should be 0 in 0 milliseconds", (done) ->
 			foldP add, 1, [] |> p-equal-in-time done, 1, 0
 
 		_it "on add, 0, [1 to 10] should be 55 in 20 milliseconds", (done) ->
-			foldP add, 1, [1 to 10] |> p-equal-in-time done, 56, 200
+			a = ensure-zero-concurrency add
+			foldP a, 1, [1 to 10] |> p-equal done, 56
 
 	describe 'sequenceP', ->
 		_it 'on [(double 1) .. (double 10)] should be [2, 4, ..., 20] in 20 milliseconds', (done) ->
@@ -455,12 +483,14 @@ describe 'Compositions', ->
 
 	describe 'serial-sequence', ->
 		_it 'on [(double 1) .. (double 10)] should be [2, 4, ..., 20] in 200 milliseconds', (done) ->
-			serial-sequence [(double i) for i in [1 to 10]] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 200
+			d = ensure-zero-concurrency double
+			serial-sequence [(d i) for i in [1 to 10]] |> p-deep-equal done, [i*2 for i in [1 to 10]]
 
 	describe 'parallel-limited-sequence', ->
 
 		_it 'on 2, [(double 1) .. (double 10)] should be [2, 4, ..., 20] in 100 milliseconds', (done) ->
-			parallel-limited-sequence 2, [(double i) for i in [1 to 10]] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 100
+			d = ensure-minimum-maximum-concurrency 2, 2, double
+			parallel-limited-sequence 2, [(d i) for i in [1 to 10]] |> p-deep-equal done, [i*2 for i in [1 to 10]]
 
 describe 'map', ->
 
@@ -479,17 +509,21 @@ describe 'map', ->
 			serial-map double, [] |> p-deep-equal-in-time done, [], 0
 
 		_it 'on double [1 to 10] should be [2 to 20] in 20 milliseconds', (done) ->
-			serial-map (ensure-zero-concurrency double), [1 to 10] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 200
+			d = ensure-zero-concurrency double
+			serial-map d, [1 to 10] |> p-deep-equal done, [i*2 for i in [1 to 10]]
 
 		_it 'on double-error-at-five [1 to 10] should be an error', (done) ->
-			serial-map double-error-at-five, [1 to 10] |> p-is-error-in-time done, 100
+			d = ensure-zero-concurrency double-error-at-five
+			serial-map d, [1 to 10] |> p-is-error done
 
 	describe 'parallel-limited-map', ->
 		_it 'on [] should be [] in 0 milliseconds', (done) ->
-			parallel-limited-map 2, double, [] |> p-deep-equal-in-time done, [], 0
+			d = ensure-minimum-maximum-concurrency 2, 2, double
+			parallel-limited-map 2, d, [] |> p-deep-equal done, []
 
 		_it 'on double [1 to 10] should be [2 to 20] in 20 milliseconds', (done) ->
-			parallel-limited-map 2, double, [1 to 10] |> p-deep-equal-in-time done, [i*2 for i in [1 to 10]], 100
+			d = ensure-minimum-maximum-concurrency 2, 2, double
+			parallel-limited-map 2, d, [1 to 10] |> p-deep-equal done, [i*2 for i in [1 to 10]]
 
 describe 'filter', ->
 
@@ -505,10 +539,12 @@ describe 'filter', ->
 			parallel-limited-filter 2, more-than-five, [] |> p-deep-equal-in-time done, [], 0
 
 		_it "more-than-five on [1 to 10] should be [6 to 10] in 200 milliseconds", (done) ->
-			parallel-limited-filter 2, more-than-five, [1 to 10] |> p-deep-equal-in-time done, [6 to 10], 100
+			m = ensure-minimum-maximum-concurrency 2, 2, more-than-five
+			parallel-limited-filter 2, m, [1 to 10] |> p-deep-equal done, [6 to 10]
 
 		_it "more-than-five on [1 to 10] ++ [1 to 5] ++ [6 to 10] should be [6 to 10] in 200 milliseconds", (done) ->
-			parallel-limited-filter 2, more-than-five, [1 to 10] ++ [1 to 5] ++ [6 to 10] |> p-deep-equal-in-time done, [6 to 10] ++ [6 to 10], 200
+			m = ensure-minimum-maximum-concurrency 2, 2, more-than-five
+			parallel-limited-filter 2, m, [1 to 10] ++ [1 to 5] ++ [6 to 10] |> p-deep-equal done, [6 to 10] ++ [6 to 10]
 		
 describe 'sort', ->
 

@@ -1,5 +1,5 @@
 #!/bin/sh
 ./build
-lsc -c tests/ltest
+#lsc -c tests/ltest
 lsc -c tests/ptest
 mocha tests/
