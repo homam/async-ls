@@ -383,9 +383,9 @@ to-callback = (p, callback) !-->
 # Make a promise object from a callback with the signature of `(result) -> void`, like `fs.exist`
 # > Cb x -> p x
 from-value-callback = (f) ->
-	->
+	(...args) ->
 		_res = null
-		args = Array.prototype.slice.call(arguments, 0) ++ [->
+		args = args ++ [->
 			_res it
 		]
 		new Promise (res, rej) ->
@@ -399,9 +399,9 @@ from-value-callback = (f) ->
 # Make a promise object from a callback with the signature of `(result) -> (error)`, like `fs.writeFile`
 # > Cbv x -> p x
 from-void-callback = (f) ->
-	->
+	(...args) ->
 		_res = null
-		args = Array.prototype.slice.call(arguments, 0) ++ [->
+		args = args ++ [->
 			_res!
 		]
 		new Promise (res, rej) ->
@@ -417,10 +417,10 @@ from-void-callback = (f) ->
 # > CB x -> Promise x
 
 from-error-value-callback = (f) ->
-	->
+	(...args) ->
 		_res = null
 		_rej = null
-		args = Array.prototype.slice.call(arguments, 0) ++ [(error, result) ->
+		args = args ++ [(error, result) ->
 			return _rej error if !!error
 			_res result
 		]
@@ -437,10 +437,10 @@ from-error-value-callback = (f) ->
 # Make a promise object from a callback with the signature of `(error, result1, result2, ...) -> void`, like `(error, response, body) <- request url`
 # > ((...x) -> y) -> CB x -> Promise y
 from-error-values-callback = (projection, f) ->
-	->
+	(...args) ->
 		_res = null
 		_rej = null
-		args = Array.prototype.slice.call(arguments, 0) ++ [(error, ...more) ->
+		args = args ++ [(error, ...more) ->
 			return _rej error if !!error
 			_res projection ...more
 		]
