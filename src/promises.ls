@@ -394,9 +394,23 @@ from-value-callback = (f) ->
 			f.apply null, args
 		catch ex
 			rej ex
-	
+
+
+# ### from-error-only-callback
+# Make a promise from a callback with the signature of `Error -> void`
+# > (Error -> void,  Object?) -> Promise ()
+from-error-only-callback = (f, self = null) ->
+	(...args) ->
+		(res, rej) <- new-promise
+		args = (args or []) ++ [
+			(err) -> 
+				return rej err if !! err
+				res!
+		]
+		f.apply self, args
+
 # ### from-void-callback
-# Make a promise object from a callback with the signature of `(result) -> (error)`, like `fs.writeFile`
+# Make a promise object from a callback with the signature of `result -> Error`, like `fs.writeFile`
 # > Cbv x -> p x
 from-void-callback = (f) ->
 	(...args) ->
@@ -413,10 +427,10 @@ from-void-callback = (f) ->
 	
 
 # ### from-error-value-callback
-# Make a promise object from a callback with the signature of `(error, result) -> void`, like `fs.stat`
-# > CB x -> Promise x
+# Make a promise object from a callback with the signature of `(Error, result) -> void`, like `fs.stat`
+# > ((Error, result) -> void, Object?) -> Promise result
 
-from-error-value-callback = (f) ->
+from-error-value-callback = (f, self = null) ->
 	(...args) ->
 		_res = null
 		_rej = null
@@ -428,7 +442,7 @@ from-error-value-callback = (f) ->
 		_res := res
 		_rej := rej
 		try
-			f.apply null, args
+			f.apply self, args
 		catch ex
 			rej ex
 
@@ -537,6 +551,7 @@ exports <<< {
 
 	to-callback
 	from-value-callback
+	from-error-only-callback
 	from-void-callback
 	from-error-value-callback
 	from-error-values-callback
