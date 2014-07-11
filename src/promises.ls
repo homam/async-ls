@@ -327,15 +327,15 @@ waterfall = (x, fs) -->
 # Since we can think of promise as a superset of either in the way it handles errors.
 # > transform-promise-either :: Promise x -> (x -> Either y) -> Promise y
 transform-promise-either = (f, g) -->
-	new Promise (res, rej) ->
-		f.then (fx) ->
-			[errg, gfx] = g fx
-			if !!errg
-				rej new Error errg
-			else
-				res gfx
-		f.catch (err) ->
-			rej err
+	(res, rej) <- new-promise
+	f.then (fx) ->
+		[errg, gfx] = g fx
+		if !!errg
+			rej new Error errg
+		else
+			res gfx
+	f.catch (err) ->
+		rej err
 
 # ### ftransform-promise-either
 # `transform-promise-either` with its arguments flipped.
@@ -347,11 +347,11 @@ ftransform-promise-either = flip transform-promise-either
 # Bind an either monad to a promise monad.
 # > transform-either-promise :: Either x -> (x -> Promise y) -> Promise y
 transform-either-promise = ([errf, fx], g) ->
-	new Promise (res, rej) ->
-		if !!errf
-			rej new Error errf
-		else
-			res g fx
+	(res, rej) <- new-promise
+	if !!errf
+		rej new Error errf
+	else
+		res g fx
 
 # ### ftransform-either-promise
 # `transform-either-promise` with its arguments flipped.
@@ -363,10 +363,10 @@ ftransform-either-promise = flip transform-either-promise
 # Executes the left promie first and only execute the right promise if the left fails.
 # > left-or-right: (a -> Promise b) -> (a -> Promise b) -> (a -> Promise b)
 left-or-right = (f, g, x) --> 
-	new Promise (res, rej) ->
-		f x
-			..then -> res it
-			..catch -> g x .then res, rej
+	(res, rej) <- new-promise
+	f x
+		..then -> res it
+		..catch -> g x .then res, rej
 
 
 # ### to-callback
@@ -388,12 +388,12 @@ from-value-callback = (f) ->
 		args = args ++ [->
 			_res it
 		]
-		new Promise (res, rej) ->
-			_res := res
-			try
-				f.apply null, args
-			catch ex
-				rej ex
+		(res, rej) <- new-promise
+		_res := res
+		try
+			f.apply null, args
+		catch ex
+			rej ex
 	
 # ### from-void-callback
 # Make a promise object from a callback with the signature of `(result) -> (error)`, like `fs.writeFile`
@@ -404,12 +404,12 @@ from-void-callback = (f) ->
 		args = args ++ [->
 			_res!
 		]
-		new Promise (res, rej) ->
-			_res := res
-			try
-				f.apply null, args
-			catch ex
-				rej ex
+		(res, rej) <- new-promise
+		_res := res
+		try
+			f.apply null, args
+		catch ex
+			rej ex
 	
 
 # ### from-error-value-callback
@@ -424,13 +424,13 @@ from-error-value-callback = (f) ->
 			return _rej error if !!error
 			_res result
 		]
-		new Promise (res, rej) ->
-			_res := res
-			_rej := rej
-			try
-				f.apply null, args
-			catch ex
-				rej ex
+		(res, rej) <- new-promise
+		_res := res
+		_rej := rej
+		try
+			f.apply null, args
+		catch ex
+			rej ex
 
 
 # ### from-error-values-callback
@@ -444,13 +444,13 @@ from-error-values-callback = (projection, f) ->
 			return _rej error if !!error
 			_res projection ...more
 		]
-		new Promise (res, rej) ->
-			_res := res
-			_rej := rej
-			try
-				f.apply null, args
-			catch ex
-				rej ex
+		(res, rej) <- new-promise
+		_res := res
+		_rej := rej
+		try
+			f.apply null, args
+		catch ex
+			rej ex
 
 
 # ### from-named-callbacks
@@ -462,16 +462,27 @@ from-named-callbacks = (success-name, error-name, obj) ->
 	obj[success-name] = (-> _res it)
 	obj[error-name] = (-> _rej it)
 
-	new Promise (res, rej) ->
-		_res := res
-		_rej := rej
+	(res, rej) <- new-promise
+	_res := res
+	_rej := rej
 		
-
+# ### new-promise
+# A convenient way for creating new promises without nesting:
+# ```LiveScript
+# (resolve, reject) <- new-promise
+# ...
+# resolve ...
+# ```
+# > ((x -> void), (Error -> void) -> void) -> Promise x
+new-promise = (callback) ->
+	new Promise (res, rej) ->
+		callback res, rej
 
 # exports
 exports = exports or this
 exports <<< {
 	LazyPromise: Promise
+	new-promise
 
 	returnP
 	fmapP 
