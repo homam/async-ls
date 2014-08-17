@@ -2,7 +2,7 @@
 
 # ## Imports
 require \setimmediate
-Promise = global.Promise or require \promise
+Promise = /* global.Promise or */ require \promise # fix for Chrome: always use promise module
 inherit = require \inherits
 {Obj} = require \prelude-ls
 
@@ -27,3 +27,6 @@ for k in Obj.keys(Promise)
 
 module.exports = LazyPromise
 inherit(LazyPromise, Promise)
+
+if not LazyPromise.resolve
+	LazyPromise.resolve = (x) -> set-immediate
